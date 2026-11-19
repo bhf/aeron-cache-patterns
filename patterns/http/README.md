@@ -21,15 +21,10 @@ environment, or the base you extend with ws/sse/UI (see the full-stack pattern).
 
 ## Architecture
 
-```
-                    clustered (CACHE_TYPE=clustered)        ephemeral (CACHE_TYPE=ephemeral)
-                 ┌──────────────────────────────┐        ┌──────────────────────────┐
-  client ─HTTP─▶ │ aeroncache-http (7070)        │        │ aeroncache-http (7070)   │
-                 │        │ Aeron (RAFT)          │        │        │ Aeron (SINGLE)  │
-                 │  ┌─────▼─────┬───────┬───────┐ │        │  ┌─────▼──────────────┐  │
-                 │  │ cluster-0 │ -1    │ -2    │ │        │  │ ephemeral-0        │  │
-                 │  └───────────┴───────┴───────┘ │        │  └────────────────────┘  │
-                 └──────────────────────────────┘        └──────────────────────────┘
+```mermaid
+flowchart LR
+  client([Client]) -->|"HTTP :7070"| http["aeroncache-http"]
+  http ==>|Aeron| backend[("Backend<br/>clustered: RAFT cluster-0 · -1 · -2<br/>ephemeral: SINGLE ephemeral-0")]
 ```
 
 Both backends co-locate a clustertools sidecar (media-driver counters on 7080). The HTTP Service

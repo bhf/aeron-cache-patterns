@@ -20,11 +20,12 @@ and reads the result back over SSE.
 
 ## Architecture
 
-```
-  writer ── HTTP ──▶ aeroncache-http (7070) ─┐
-                                              ├─Aeron─▶ backend (clustered | ephemeral)
-  reader ◀═ SSE  ══ aeroncache-sse  (7072) ─┘
-            (subscribe / hydrate)
+```mermaid
+flowchart LR
+  writer([Writer]) -->|"HTTP write :7070"| http["aeroncache-http"]
+  sse["aeroncache-sse · :7072"] -->|"SSE events (subscribe / hydrate)"| reader([Reader])
+  http ==>|Aeron| backend[("Backend<br/>clustered or ephemeral")]
+  sse ==>|Aeron| backend
 ```
 
 The sse interface exposes the SSE subscription routes (`/api/sse/v1/cache/...`,

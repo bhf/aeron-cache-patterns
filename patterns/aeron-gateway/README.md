@@ -21,10 +21,12 @@ so it never becomes ready against a single ephemeral node. `make up CACHE_TYPE=e
 
 ## Architecture
 
-```
-  Aeron client ═══ SBE / Aeron (UDP 7075 req, 7076 resp) ═══▶ aeroncache-gateway ──Aeron──▶ backend
-                                                               ├─ HTTP health (7073)
-                                                               └─ clustertools sidecar (7080, counters)
+```mermaid
+flowchart LR
+  client([Aeron client]) ==>|"SBE / Aeron UDP · :7075 req · :7076 resp"| gw["aeroncache-gateway"]
+  gw -->|"HTTP health :7073"| health["/liveness · /readiness"]
+  gw -->|counters| ct["clustertools sidecar · :7080"]
+  gw ==>|Aeron| cluster[("Clustered backend · RAFT ×3")]
 ```
 
 The gateway also runs an HTTP **health server** (`/liveness/`, `/readiness/` on 7073) and a
