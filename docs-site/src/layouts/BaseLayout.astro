@@ -152,16 +152,6 @@ const pageTitle = title.includes('Aeron Cache Patterns') ? title : `${title} · 
         transition: all 0.15s ease;
       }
       .mmd-tools button:hover { color: #d4e6d8; border-color: rgba(95, 158, 120, 0.7); background: rgba(8, 12, 10, 0.95); }
-      .mmd-modal-newtab {
-        position: absolute;
-        top: 0.65rem;
-        right: 3rem;
-        font-size: 0.72rem;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        color: rgba(184, 216, 192, 0.9);
-        text-decoration: none;
-      }
-      .mmd-modal-newtab:hover { color: #d4e6d8; }
 
       /* Diagram modal (click a diagram to enlarge). */
       .mmd-modal[hidden] { display: none; }
@@ -182,21 +172,22 @@ const pageTitle = title.includes('Aeron Cache Patterns') ? title : `${title} · 
       }
       .mmd-modal-dialog {
         position: relative;
-        max-width: 94vw;
+        /* An explicit width so the diagram scales UP to fill it (without it, the dialog
+           shrink-wraps to the SVG's natural size and "enlarge" does nothing). */
+        width: min(94vw, 1300px);
         max-height: 92vh;
         overflow: auto;
         background: rgba(15, 21, 18, 0.96);
         border: 1px solid rgba(244, 246, 244, 0.12);
         border-radius: 0.9rem;
-        padding: 2rem 1.5rem 1.5rem;
+        padding: 2.25rem 1.5rem 1.5rem;
         box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
       }
-      .mmd-modal-body { display: flex; justify-content: center; }
+      .mmd-modal-body { display: block; }
       .mmd-modal-body svg {
         max-width: none;
         width: 100%;
         height: auto;
-        max-height: 80vh;
       }
       .mmd-modal-close {
         position: absolute;
@@ -253,15 +244,17 @@ const pageTitle = title.includes('Aeron Cache Patterns') ? title : `${title} · 
       // readable when opened on its own (the diagram text is light on transparent).
       function diagramPageUrl(svg) {
         const clone = svg.cloneNode(true);
+        // Strip width/height/style so the wrapper's explicit dimensions take over. An SVG with only
+        // a viewBox has no definite size on its own page and collapses — give it a real viewport and
+        // let preserveAspectRatio scale the diagram to fit.
         clone.removeAttribute('style');
-        clone.setAttribute('width', '100%');
+        clone.removeAttribute('width');
         clone.removeAttribute('height');
         const svgStr = new XMLSerializer().serializeToString(clone);
         const html =
           '<!doctype html><meta charset="utf-8"><title>Diagram</title>' +
-          '<style>html,body{margin:0;height:100%;background:#0b0f0d;display:flex;' +
-          'align-items:center;justify-content:center}svg{max-width:96vw;max-height:94vh;' +
-          'width:auto;height:auto}</style>' + svgStr;
+          '<style>html,body{margin:0;height:100%;background:#0b0f0d}' +
+          'svg{display:block;width:96vw;height:92vh;margin:4vh auto}</style>' + svgStr;
         return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
       }
 
@@ -272,7 +265,7 @@ const pageTitle = title.includes('Aeron Cache Patterns') ? title : `${title} · 
       }
 
       // One shared modal, built lazily.
-      let modal, modalBody, modalNewTab, lastTrigger;
+      let modal, modalBody, lastTrigger;
       function buildModal() {
         modal = document.createElement('div');
         modal.className = 'mmd-modal';
@@ -280,11 +273,9 @@ const pageTitle = title.includes('Aeron Cache Patterns') ? title : `${title} · 
         modal.innerHTML =
           '<div class="mmd-modal-backdrop"></div>' +
           '<div class="mmd-modal-dialog" role="dialog" aria-modal="true" aria-label="Diagram">' +
-          '<a class="mmd-modal-newtab" target="_blank" rel="noopener">↗ new tab</a>' +
           '<button class="mmd-modal-close" aria-label="Close diagram">×</button>' +
           '<div class="mmd-modal-body"></div></div>';
         modalBody = modal.querySelector('.mmd-modal-body');
-        modalNewTab = modal.querySelector('.mmd-modal-newtab');
         const close = () => closeModal();
         modal.querySelector('.mmd-modal-backdrop').addEventListener('click', close);
         modal.querySelector('.mmd-modal-close').addEventListener('click', close);
@@ -298,8 +289,6 @@ const pageTitle = title.includes('Aeron Cache Patterns') ? title : `${title} · 
         clone.setAttribute('width', '100%');
         clone.removeAttribute('height');
         modalBody.replaceChildren(clone);
-        const url = diagramPageUrl(svg);
-        modalNewTab.href = url;
         modal.hidden = false;
         modal.querySelector('.mmd-modal-close').focus();
       }
