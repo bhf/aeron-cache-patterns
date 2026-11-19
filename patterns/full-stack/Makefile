@@ -9,7 +9,7 @@
 PATTERN       := full-stack
 NAMESPACE     ?= aeroncache-patterns
 CACHE_TYPE    ?= clustered
-WAIT_TIMEOUT  ?= 420s
+WAIT_TIMEOUT  ?= 600s
 
 # Verify: http create/put/get (primary) + UI readiness (secondary). The ws/sse interfaces are
 # covered by their own patterns; here the UI check confirms the front end is serving.

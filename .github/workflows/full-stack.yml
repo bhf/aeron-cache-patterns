@@ -29,4 +29,4 @@ jobs:
     with:
       pattern: full-stack
       cache-type: ${{ matrix.cache-type }}
-      wait-timeout: "420s"
+      wait-timeout: "600s"

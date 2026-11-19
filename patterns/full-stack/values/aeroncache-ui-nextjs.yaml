@@ -9,4 +9,25 @@
 # Endpoint defaults are kept: the UI server proxies the cache HTTP API over the in-cluster Service
 # DNS (aeroncache-http); the browser opens ws/sse on localhost via port-forward. To use the UI,
 # port-forward the UI (3000) plus ws (7071) and sse (7072).
-{}
+#
+# Relaxed probes: the UI's `/` is server-side rendered and reaches the backend, so it can be slow to
+# respond while the cluster and interfaces are still warming up and the node is busy (this is the
+# heaviest pattern — 7 pods on the clustered variant). The chart's default probes (5s timeout, 5
+# failures) are too tight and liveness-kill the UI into a crash loop before it settles. These give it
+# room without masking a genuinely dead UI.
+livenessProbe:
+  httpGet:
+    path: /
+    port: 3000
+  initialDelaySeconds: 45
+  periodSeconds: 20
+  timeoutSeconds: 15
+  failureThreshold: 12
+readinessProbe:
+  httpGet:
+    path: /
+    port: 3000
+  initialDelaySeconds: 20
+  periodSeconds: 15
+  timeoutSeconds: 15
+  failureThreshold: 30
