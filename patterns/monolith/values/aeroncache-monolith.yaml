@@ -1,0 +1,12 @@
+# Overlay on charts/aeroncache-monolith/values.yaml — only the differences for running this
+# pattern locally. Image repository/tag/pullPolicy are set from versions.env via the Makefile
+# (ghcr_image), so they are deliberately not pinned here.
+
+# Reach the interfaces via `kubectl port-forward` (what `make verify` does), so a plain ClusterIP
+# Service is all we need. The chart defaults to LoadBalancer; for that path keep the default and
+# run `minikube tunnel` to get an external IP.
+service:
+  type: ClusterIP
+
+# Single-node RAFT cluster embedded in the one pod (the chart default; stated here for clarity).
+cacheMode: "RAFT"

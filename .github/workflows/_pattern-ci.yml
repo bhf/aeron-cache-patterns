@@ -1,0 +1,71 @@
+# Reusable CI for a single pattern.
+#
+# A per-pattern workflow (e.g. monolith.yml) calls this with its pattern name and a paths
+# filter, so only the changed pattern runs and each gets its own status. The flow mirrors a
+# real local run, but on kind: create cluster -> optional prereqs -> make deploy -> wait -> smoke.
+#
+# Images are pulled from the public GHCR, so there is no build or image-load step. GHCR_PULL_POLICY
+# is forced to Always because the pinned -SNAPSHOT tag is mutable upstream and we want the newest
+# build of the pinned release.
+
+on:
+  workflow_call:
+    inputs:
+      pattern:
+        description: Pattern directory name under patterns/
+        required: true
+        type: string
+      wait-timeout:
+        description: Timeout for `kubectl wait` (e.g. 300s)
+        required: false
+        type: string
+        default: "300s"
+
+jobs:
+  test:
+    name: ${{ inputs.pattern }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: aeroncache-patterns
+
+      - name: Pattern prerequisites (optional)
+        working-directory: patterns/${{ inputs.pattern }}
+        run: |
+          if [ -x prereqs.sh ]; then
+            echo "Running prereqs.sh..."
+            ./prereqs.sh
+          else
+            echo "No prereqs.sh — skipping."
+          fi
+
+      - name: Deploy pattern
+        working-directory: patterns/${{ inputs.pattern }}
+        env:
+          CLUSTER: kind
+          CLUSTER_NAME: aeroncache-patterns
+          GHCR_PULL_POLICY: Always
+        run: make deploy
+
+      - name: Wait for Ready
+        working-directory: patterns/${{ inputs.pattern }}
+        run: make wait WAIT_TIMEOUT=${{ inputs.wait-timeout }}
+
+      - name: Verify (smoke test)
+        working-directory: patterns/${{ inputs.pattern }}
+        run: make verify
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "===== Pods ====="
+          kubectl get pods -A
+          echo "===== Events (aeroncache) ====="
+          kubectl get events -n aeroncache --sort-by=.metadata.creationTimestamp || true
+          echo "===== Logs (aeroncache) ====="
+          kubectl logs -n aeroncache --all-containers --prefix --tail=200 --selector='' || true
