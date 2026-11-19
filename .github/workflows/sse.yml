@@ -1,0 +1,31 @@
+name: SSE interface
+
+# Runs the sse pattern against both backends (clustered + ephemeral) via a matrix over the reusable
+# workflow. Fires only when this pattern, the shared pieces, or the reusable workflow change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/sse/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/sse.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/sse/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/sse.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  sse:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: sse
+      cache-type: ${{ matrix.cache-type }}

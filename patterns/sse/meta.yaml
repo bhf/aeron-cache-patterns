@@ -1,0 +1,10 @@
+title: "SSE interface"
+slug: "sse"
+order: 12
+category: "Interfaces"
+summary: "A backend plus the Server-Sent Events streaming interface (with an http writer alongside, since SSE is read-only). Clustered or ephemeral via CACHE_TYPE."
+status: "ready"
+difficulty: "beginner"
+prereqs: []
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-http, aeroncache-sse]
+projectItem: "Pattern: sse interface (clustered + ephemeral)"
