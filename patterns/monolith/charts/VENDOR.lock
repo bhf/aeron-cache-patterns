@@ -1,0 +1,9 @@
+# Vendored charts — managed by scripts/sync-charts.sh. Do not hand-edit chart contents;
+# re-run the script to refresh, then review the diff.
+upstream_repo: https://github.com/bhf/aeron-cache.git
+upstream_ref:  main
+upstream_sha:  f0693e748e25c211922f7a0fd96bbd3b31fc5e9e
+synced_at:     2026-11-19T09:05:24Z
+charts:
+  - name: aeroncache-monolith
+    version: 0.1.0

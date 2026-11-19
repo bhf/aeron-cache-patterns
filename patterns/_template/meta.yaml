@@ -1,0 +1,13 @@
+# Structured metadata for a pattern. The docs-site reads this to build the patterns index
+# and the per-pattern page; the README.md next to it holds the prose (kept frontmatter-free
+# so it renders cleanly on GitHub too).
+title: "__PATTERN__"                 # Human-readable title
+slug: "__PATTERN__"                  # URL segment / directory name (kebab-case)
+order: 99                            # Sort order within the category (lower appears first)
+category: "Foundations"              # Foundations | Gateways | Autoscaling | Near cache | Service mesh | GitOps
+summary: "One line describing what this pattern demonstrates and when to use it."
+status: "draft"                      # draft | ready
+difficulty: "beginner"               # beginner | intermediate | advanced
+prereqs: []                          # extra cluster prerequisites, e.g. [metrics-server]
+upstreamCharts: []                   # charts vendored under charts/, e.g. [aeroncache-monolith]
+projectItem: ""                      # matching board item title on github.com/users/bhf/projects/14

@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPatternsByCategory } from '../lib/patterns';
+
+const groups = await getPatternsByCategory();
+const total = groups.reduce((n, g) => n + g.patterns.length, 0);
+---
+
+<BaseLayout>
+  <section class="mx-auto max-w-content px-5 pt-16">
+    <p class="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-sage-400">Deployment patterns</p>
+    <h1 class="max-w-3xl text-balance text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
+      Self-contained ways to run <span class="text-sage-400">Aeron Cache</span> on Kubernetes
+    </h1>
+    <p class="mt-5 max-w-2xl text-lg leading-relaxed text-ink/70">
+      Each pattern carries its own vendored Helm charts, a one-command run (<code
+        class="rounded bg-sage-600/15 px-1.5 py-0.5 font-mono text-sm text-sage-200">make up</code
+      >), a smoke test, and its own CI. They pull the public images from
+      <code class="rounded bg-sage-600/15 px-1.5 py-0.5 font-mono text-sm text-sage-200">ghcr.io/bhf/aeroncache-*</code
+      >, so there is nothing to build.
+    </p>
+    <p class="mt-3 font-mono text-xs text-ink/50">{total} pattern{total === 1 ? '' : 's'}</p>
+  </section>
+
+  <section class="mx-auto max-w-content px-5 py-12">
+    {groups.map((g) => (
+      <div class="mt-10 first:mt-0">
+        <h2 class="mb-5 border-b border-white/10 pb-2 text-sm font-semibold uppercase tracking-widest text-ink/50">
+          {g.category}
+        </h2>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {g.patterns.map((p) => (
+            <a
+              href={`/patterns/${p.slug}`}
+              class="group flex flex-col rounded-xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-sage-600/50 hover:bg-white/[0.05]"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-lg font-semibold text-ink transition group-hover:text-sage-300">{p.title}</h3>
+                <span
+                  class:list={[
+                    'shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide',
+                    p.status === 'ready' ? 'bg-sage-600/20 text-sage-300' : 'bg-white/10 text-ink/50',
+                  ]}
+                >
+                  {p.status}
+                </span>
+              </div>
+              <p class="mt-2 flex-1 text-sm leading-relaxed text-ink/65">{p.summary}</p>
+              {p.difficulty && (
+                <p class="mt-3 font-mono text-[0.7rem] uppercase tracking-wide text-ink/40">{p.difficulty}</p>
+              )}
+            </a>
+          ))}
+        </div>
+      </div>
+    ))}
+
+    {total === 0 && (
+      <p class="rounded-xl border border-white/10 bg-white/[0.03] p-6 text-ink/60">
+        No patterns yet. Scaffold one with <code class="font-mono text-sage-300">scripts/new-pattern.sh</code>.
+      </p>
+    )}
+  </section>
+</BaseLayout>

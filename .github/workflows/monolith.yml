@@ -1,0 +1,26 @@
+name: Monolith
+
+# Runs only when the monolith pattern, the shared pieces it depends on, or the reusable
+# workflow change. The real logic lives in _pattern-ci.yml.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/monolith/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/monolith.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/monolith/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/monolith.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  monolith:
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: monolith
