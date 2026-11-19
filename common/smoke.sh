@@ -11,12 +11,16 @@
 #   LOCAL_PORT     localhost port to bind   (default = SMOKE_PORT)
 #   CACHE_ID       cache id to exercise     (default smoke-test-cache)
 #   SMOKE_MODE     http | health | command  (default http)
-#   SMOKE_CMD      command to run in 'command' mode (sees BASE and LOCAL_PORT in its env)
+#   SMOKE_CMD      command to run in 'command' mode (sees BASE, BASE2, LOCAL_PORT, LOCAL_PORT2)
+#   SMOKE_SERVICE2 optional second Service to port-forward (e.g. a writer interface for sse)
+#   SMOKE_PORT2    the second Service's port
+#   LOCAL_PORT2    localhost port for the second forward (default = SMOKE_PORT2)
 #
 # Modes:
 #   http     liveness/readiness + an HTTP create/put/get round-trip (REST interfaces).
 #   health   liveness/readiness only (interfaces whose data path is not HTTP, e.g. the aeron gateway).
-#   command  liveness/readiness, then run $SMOKE_CMD against the forwarded port (e.g. a ws round-trip).
+#   command  liveness/readiness, then run $SMOKE_CMD against the forwarded port(s) (e.g. a ws round-trip,
+#            or an sse round-trip that writes via a second interface).
 set -euo pipefail
 
 NAMESPACE="${NAMESPACE:-aeroncache-patterns}"
@@ -27,13 +31,26 @@ CACHE_ID="${CACHE_ID:-smoke-test-cache}"
 SMOKE_MODE="${SMOKE_MODE:-http}"
 BASE="http://localhost:${LOCAL_PORT}"
 
+# Optional second interface (e.g. sse needs an http writer to drive a real stream round-trip).
+SMOKE_SERVICE2="${SMOKE_SERVICE2:-}"
+SMOKE_PORT2="${SMOKE_PORT2:-}"
+LOCAL_PORT2="${LOCAL_PORT2:-$SMOKE_PORT2}"
+BASE2="http://localhost:${LOCAL_PORT2}"
+
 fail() { echo "SMOKE FAILED: $*" >&2; exit 1; }
+
+PF_PIDS=()
+cleanup() { for p in "${PF_PIDS[@]:-}"; do kill "$p" >/dev/null 2>&1 || true; done; }
+trap cleanup EXIT
 
 echo "==> Port-forwarding ${SMOKE_SERVICE} ${LOCAL_PORT}:${SMOKE_PORT} (ns ${NAMESPACE}, mode ${SMOKE_MODE})"
 kubectl port-forward -n "$NAMESPACE" "$SMOKE_SERVICE" "${LOCAL_PORT}:${SMOKE_PORT}" >/dev/null 2>&1 &
-PF_PID=$!
-cleanup() { kill "$PF_PID" >/dev/null 2>&1 || true; }
-trap cleanup EXIT
+PF_PIDS+=($!)
+if [[ -n "$SMOKE_SERVICE2" ]]; then
+  echo "==> Port-forwarding ${SMOKE_SERVICE2} ${LOCAL_PORT2}:${SMOKE_PORT2}"
+  kubectl port-forward -n "$NAMESPACE" "$SMOKE_SERVICE2" "${LOCAL_PORT2}:${SMOKE_PORT2}" >/dev/null 2>&1 &
+  PF_PIDS+=($!)
+fi
 sleep 3
 
 # Liveness/readiness gate for every mode — the HTTP health server is present on all interfaces.
@@ -70,7 +87,8 @@ case "$SMOKE_MODE" in
   command)
     : "${SMOKE_CMD:?SMOKE_CMD is required for SMOKE_MODE=command}"
     echo "==> Running: ${SMOKE_CMD}"
-    BASE="$BASE" LOCAL_PORT="$LOCAL_PORT" CACHE_ID="$CACHE_ID" bash -c "$SMOKE_CMD" || fail "command check failed"
+    BASE="$BASE" BASE2="$BASE2" LOCAL_PORT="$LOCAL_PORT" LOCAL_PORT2="$LOCAL_PORT2" CACHE_ID="$CACHE_ID" \
+      bash -c "$SMOKE_CMD" || fail "command check failed"
     ;;
 
   *)

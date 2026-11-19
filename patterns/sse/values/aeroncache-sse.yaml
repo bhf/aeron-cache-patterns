@@ -1,0 +1,5 @@
+# Overlay for the sse interface, common to both cache types. Image comes from versions.env via the
+# Makefile (ghcr_image); cacheMode / clusterAddresses / ephemeral endpoints are set per CACHE_TYPE.
+# ClusterIP so `make verify` reaches it via port-forward (chart defaults to LoadBalancer).
+service:
+  type: ClusterIP

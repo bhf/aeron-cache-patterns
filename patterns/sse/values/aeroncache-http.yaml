@@ -1,0 +1,5 @@
+# Overlay for the http writer interface, common to both cache types. Image comes from versions.env
+# via the Makefile (ghcr_image); cacheMode / clusterAddresses / ephemeral endpoints are set per
+# CACHE_TYPE. ClusterIP so `make verify` can write to it via port-forward.
+service:
+  type: ClusterIP
