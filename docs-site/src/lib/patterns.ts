@@ -4,6 +4,7 @@ import { getCollection } from 'astro:content';
 // appended after, in first-seen order.
 export const CATEGORY_ORDER = [
   'Foundations',
+  'Interfaces',
   'Gateways',
   'Autoscaling',
   'Near cache',

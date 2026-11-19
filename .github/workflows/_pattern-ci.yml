@@ -15,6 +15,11 @@ on:
         description: Pattern directory name under patterns/
         required: true
         type: string
+      cache-type:
+        description: CACHE_TYPE for patterns that support it (ignored by patterns that don't)
+        required: false
+        type: string
+        default: "clustered"
       wait-timeout:
         description: Timeout for `kubectl wait` (e.g. 300s)
         required: false
@@ -23,7 +28,7 @@ on:
 
 jobs:
   test:
-    name: ${{ inputs.pattern }}
+    name: ${{ inputs.pattern }} (${{ inputs.cache-type }})
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -50,6 +55,7 @@ jobs:
           CLUSTER: kind
           CLUSTER_NAME: aeroncache-patterns
           GHCR_PULL_POLICY: Always
+          CACHE_TYPE: ${{ inputs.cache-type }}
         run: make deploy
 
       - name: Wait for Ready
