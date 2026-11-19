@@ -1,0 +1,132 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { getPatternsByCategory } from '../lib/patterns';
+
+export interface Props {
+  title: string;
+  kicker?: string;
+  description?: string;
+  status?: 'draft' | 'ready';
+}
+
+const { title, kicker, description, status } = Astro.props;
+const groups = await getPatternsByCategory();
+const pathname = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const hrefFor = (slug: string) => `/patterns/${slug}`;
+const isActive = (slug: string) => pathname === hrefFor(slug);
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="mx-auto flex max-w-content gap-10 px-5 pt-12">
+    <!-- Patterns sidebar -->
+    <aside class="hidden w-60 shrink-0 lg:block">
+      <div class="sticky top-24">
+        <a href="/" class="mb-4 inline-block text-xs font-semibold uppercase tracking-widest text-ink/40 transition hover:text-sage-300">
+          ← All patterns
+        </a>
+        <nav class="flex flex-col gap-5">
+          {groups.map((g) => (
+            <div>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-ink/40">{g.category}</p>
+              <ul class="flex flex-col gap-1 border-l border-white/10">
+                {g.patterns.map((p) => (
+                  <li>
+                    <a
+                      href={hrefFor(p.slug)}
+                      class:list={[
+                        '-ml-px block border-l pl-3 py-1 text-sm transition',
+                        isActive(p.slug)
+                          ? 'border-sage-500 text-sage-300'
+                          : 'border-transparent text-ink/60 hover:border-sage-600 hover:text-sage-300',
+                      ]}
+                    >
+                      {p.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Article -->
+    <div class="min-w-0 flex-1">
+      <header class="mb-8">
+        {kicker && <p class="mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-sage-400">{kicker}</p>}
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-4xl font-semibold tracking-tight text-ink">{title}</h1>
+          {status && (
+            <span
+              class:list={[
+                'rounded-full px-2.5 py-0.5 text-xs font-medium',
+                status === 'ready' ? 'bg-sage-600/20 text-sage-300' : 'bg-white/10 text-ink/60',
+              ]}
+            >
+              {status}
+            </span>
+          )}
+        </div>
+        {description && <p class="mt-4 max-w-2xl text-lg leading-relaxed text-ink/70">{description}</p>}
+      </header>
+
+      <article class="prose min-w-0 max-w-3xl pb-16">
+        <slot />
+      </article>
+    </div>
+  </div>
+
+  <style is:global>
+    .prose { color: rgba(244, 246, 244, 0.82); line-height: 1.75; font-size: 1.02rem; }
+    .prose > :first-child { margin-top: 0; }
+    .prose h1 { display: none; } /* the page header already renders the title */
+    .prose h2 {
+      scroll-margin-top: 6rem;
+      margin-top: 2.75rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(244, 246, 244, 0.1);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    .prose h3 { margin-top: 2rem; margin-bottom: 0.75rem; font-size: 1.15rem; font-weight: 600; color: #eef2ee; }
+    .prose p { margin: 1rem 0; }
+    .prose a { color: #86c7a0; text-decoration: none; border-bottom: 1px solid rgba(134, 199, 160, 0.35); transition: all 0.15s ease; }
+    .prose a:hover { color: #b8d8c0; border-color: #b8d8c0; }
+    .prose strong { color: #fff; font-weight: 600; }
+    .prose ul, .prose ol { margin: 1rem 0; padding-left: 1.4rem; }
+    .prose li { margin: 0.4rem 0; }
+    .prose ul > li { list-style: none; position: relative; }
+    .prose ul > li::before {
+      content: ''; position: absolute; left: -1.1rem; top: 0.7em;
+      width: 5px; height: 5px; border-radius: 9999px; background: #5f9e78;
+    }
+    .prose ol { list-style: decimal; }
+    .prose ol > li::marker { color: #9db89f; }
+    .prose :not(pre) > code {
+      background: rgba(134, 199, 160, 0.12);
+      color: #d4e6d8;
+      padding: 0.15em 0.4em;
+      border-radius: 0.35rem;
+      font-size: 0.85em;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    }
+    .prose pre { margin: 1.25rem 0; }
+    .prose blockquote {
+      margin: 1.5rem 0;
+      padding: 0.75rem 1.25rem;
+      border-left: 3px solid #5f9e78;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 0 0.5rem 0.5rem 0;
+      color: rgba(244, 246, 244, 0.75);
+      font-style: italic;
+    }
+    .prose blockquote p { margin: 0.25rem 0; }
+    .prose hr { margin: 2.5rem 0; border: none; border-top: 1px solid rgba(244, 246, 244, 0.12); }
+    .prose table { width: 100%; margin: 1.5rem 0; border-collapse: collapse; font-size: 0.9rem; display: block; overflow-x: auto; }
+    .prose th { padding: 0.6rem 0.9rem; text-align: left; font-weight: 600; color: #fff; border-bottom: 2px solid rgba(244, 246, 244, 0.15); }
+    .prose td { padding: 0.6rem 0.9rem; border-top: 1px solid rgba(244, 246, 244, 0.08); color: rgba(244, 246, 244, 0.78); vertical-align: top; }
+  </style>
+</BaseLayout>

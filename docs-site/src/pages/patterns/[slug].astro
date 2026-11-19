@@ -1,0 +1,22 @@
+---
+import { getCollection, render } from 'astro:content';
+import ContentLayout from '../../layouts/ContentLayout.astro';
+import { getPatterns } from '../../lib/patterns';
+
+export async function getStaticPaths() {
+  const [docs, patterns] = await Promise.all([getCollection('patternDocs'), getPatterns()]);
+  return patterns
+    .map((meta) => {
+      const doc = docs.find((d) => d.id === meta.id);
+      return doc ? { params: { slug: meta.slug }, props: { doc, meta } } : null;
+    })
+    .filter((e): e is NonNullable<typeof e> => e !== null);
+}
+
+const { doc, meta } = Astro.props;
+const { Content } = await render(doc);
+---
+
+<ContentLayout title={meta.title} kicker={meta.category} description={meta.summary} status={meta.status}>
+  <Content />
+</ContentLayout>
