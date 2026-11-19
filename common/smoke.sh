@@ -7,14 +7,14 @@
 # "is this pattern actually serving?". Used by `make verify` locally and in CI.
 #
 # Config via env (exported by common/pattern.mk from the pattern's Makefile):
-#   NAMESPACE      k8s namespace            (default aeroncache)
+#   NAMESPACE      k8s namespace            (default aeroncache-patterns)
 #   SMOKE_SERVICE  Service to port-forward  (required, e.g. svc/aeroncache-monolith)
 #   SMOKE_PORT     the Service's HTTP port  (default 7070)
 #   LOCAL_PORT     localhost port to bind   (default = SMOKE_PORT)
 #   CACHE_ID       cache id to exercise     (default smoke-test-cache)
 set -euo pipefail
 
-NAMESPACE="${NAMESPACE:-aeroncache}"
+NAMESPACE="${NAMESPACE:-aeroncache-patterns}"
 SMOKE_SERVICE="${SMOKE_SERVICE:?SMOKE_SERVICE is required (e.g. svc/aeroncache-monolith)}"
 SMOKE_PORT="${SMOKE_PORT:-7070}"
 LOCAL_PORT="${LOCAL_PORT:-$SMOKE_PORT}"

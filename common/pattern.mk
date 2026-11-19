@@ -4,7 +4,7 @@
 # helm install/uninstall for its vendored charts), then includes this file:
 #
 #     PATTERN       := monolith
-#     NAMESPACE     ?= aeroncache
+#     NAMESPACE     ?= aeroncache-patterns
 #     SMOKE_SERVICE := svc/aeroncache-monolith   # what `make verify` port-forwards to
 #     SMOKE_PORT    := 7070
 #     include ../../common/pattern.mk
@@ -21,7 +21,7 @@ ROOT_DIR   := $(abspath $(COMMON_DIR)/..)
 include $(ROOT_DIR)/versions.env
 include $(COMMON_DIR)/ghcr.mk
 
-NAMESPACE     ?= aeroncache
+NAMESPACE     ?= aeroncache-patterns
 SMOKE_PORT    ?= 7070
 WAIT_TIMEOUT  ?= 300s
 CLUSTER       ?= minikube

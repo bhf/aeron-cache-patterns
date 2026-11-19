@@ -65,7 +65,7 @@ jobs:
         run: |
           echo "===== Pods ====="
           kubectl get pods -A
-          echo "===== Events (aeroncache) ====="
-          kubectl get events -n aeroncache --sort-by=.metadata.creationTimestamp || true
-          echo "===== Logs (aeroncache) ====="
-          kubectl logs -n aeroncache --all-containers --prefix --tail=200 --selector='' || true
+          echo "===== Events (aeroncache-patterns) ====="
+          kubectl get events -n aeroncache-patterns --sort-by=.metadata.creationTimestamp || true
+          echo "===== Logs (aeroncache-patterns) ====="
+          kubectl logs -n aeroncache-patterns --all-containers --prefix --tail=200 --selector='' || true

@@ -4,7 +4,7 @@
 # (up/down/verify/wait/status/logs/cluster-up/cluster-down) comes from common/pattern.mk.
 
 PATTERN       := __PATTERN__
-NAMESPACE     ?= aeroncache
+NAMESPACE     ?= aeroncache-patterns
 
 # What `make verify` port-forwards to, and the HTTP port it serves.
 SMOKE_SERVICE := svc/aeroncache-REPLACE

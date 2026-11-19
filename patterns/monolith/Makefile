@@ -4,7 +4,7 @@
 # inside one self-contained pod. One vendored chart, one image, one Service.
 
 PATTERN       := monolith
-NAMESPACE     ?= aeroncache
+NAMESPACE     ?= aeroncache-patterns
 
 # What `make verify` port-forwards to: the monolith's HTTP interface.
 SMOKE_SERVICE := svc/aeroncache-monolith
