@@ -1,0 +1,24 @@
+# Node / Astro (docs-site)
+node_modules/
+docs-site/dist/
+docs-site/.astro/
+.astro/
+
+# Local cluster / smoke-test scratch
+*.log
+counters.json
+sap.json
+kubeconfig
+
+# Accidental local clones of the sibling repos (used only as reference, never committed)
+/ac/
+/acsite/
+/aeron-cache/
+/aeron-cache-site/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
