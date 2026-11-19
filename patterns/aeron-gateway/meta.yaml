@@ -1,0 +1,10 @@
+title: "Aeron transport gateway"
+slug: "aeron-gateway"
+order: 13
+category: "Interfaces"
+summary: "A clustered backend plus the SBE-Aeron transport gateway — the bidirectional bidi-aeron interface over Aeron UDP. Clustered only (the gateway is not supported on the ephemeral backend)."
+status: "ready"
+difficulty: "intermediate"
+prereqs: []
+upstreamCharts: [aeroncache-cluster, aeroncache-gateway]
+projectItem: "Pattern: aeron-gateway — SBE-Aeron bidi transport (clustered + ephemeral)"

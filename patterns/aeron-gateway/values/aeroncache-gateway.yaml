@@ -1,0 +1,8 @@
+# Overlay for the aeron transport gateway, common to both cache types. Images come from versions.env
+# via the Makefile (ghcr_image); cacheMode / clusterAddresses are set per CACHE_TYPE.
+#
+# ClusterIP so `make verify` reaches the HTTP health server (7073) via port-forward. The chart
+# defaults to LoadBalancer (to expose the Aeron UDP request/response ports for real clients); for
+# that locally, drop this and run `minikube tunnel`.
+service:
+  type: ClusterIP
