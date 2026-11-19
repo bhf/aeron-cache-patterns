@@ -2,6 +2,14 @@
 
 ![img.png](https://raw.githubusercontent.com/bhf/aeron-cache/refs/heads/main/docs/images/header.png)
 
+[![Monolith](https://github.com/bhf/aeron-cache-patterns/actions/workflows/monolith.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/monolith.yml)
+[![HTTP interface](https://github.com/bhf/aeron-cache-patterns/actions/workflows/http.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/http.yml)
+[![WebSocket interface](https://github.com/bhf/aeron-cache-patterns/actions/workflows/ws.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/ws.yml)
+[![SSE interface](https://github.com/bhf/aeron-cache-patterns/actions/workflows/sse.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/sse.yml)
+[![Aeron transport gateway](https://github.com/bhf/aeron-cache-patterns/actions/workflows/aeron-gateway.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/aeron-gateway.yml)
+[![Full stack](https://github.com/bhf/aeron-cache-patterns/actions/workflows/full-stack.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/full-stack.yml)
+[![Docs build](https://github.com/bhf/aeron-cache-patterns/actions/workflows/docs-ci.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/docs-ci.yml)
+
 Patterns and deployments for [Aeron Cache](https://github.com/bhf/aeron-cache).
 
 Each **pattern** is a self-contained, easy-to-spin-up Kubernetes deployment that demonstrates
