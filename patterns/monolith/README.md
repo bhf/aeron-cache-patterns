@@ -23,16 +23,17 @@ pinned GHCR image → `make up` → smoke test) with the least moving parts.
 
 One StatefulSet, one pod, one image (`ghcr.io/bhf/aeroncache-monolith`), one Service:
 
-```
-                 ┌──────────────────────────────────────┐
-                 │  pod: aeroncache-monolith              │
-  client ──┐     │  ┌────────────────────────────────┐   │
-   HTTP :7070────┼─▶│ HTTP / WS / SSE interfaces      │   │
-   WS   :7071────┼─▶│ single-node RAFT cluster (node0)│   │
-   SSE  :7072────┼─▶│ embedded Aeron media driver     │   │
-                 │  └────────────────────────────────┘   │
-                 │  Service: aeroncache-monolith (ClusterIP)
-                 └──────────────────────────────────────┘
+```mermaid
+flowchart LR
+  client([Client])
+  subgraph pod["Pod · aeroncache-monolith (ClusterIP Service)"]
+    direction TB
+    ifaces["HTTP :7070 · WS :7071 · SSE :7072"]
+    core["Single-node RAFT cluster (node0)"]
+    driver["Embedded Aeron media driver"]
+    ifaces --> core --> driver
+  end
+  client -->|"HTTP / WS / SSE"| ifaces
 ```
 
 Ports: HTTP `7070`, WS `7071`, SSE `7072`, ClusterTools `7080`. The embedded media driver's

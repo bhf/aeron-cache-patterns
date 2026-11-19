@@ -17,12 +17,23 @@ at the UI driving the cache.
 
 ## Architecture
 
-```
-  browser ──▶ aeroncache-ui-nextjs (3000) ──(server-side)── http ─┐
-     │                                                            │
-     ├── ws  (browser, localhost:7071) ─▶ aeroncache-ws  (7071) ──┤
-     ├── sse (browser, localhost:7072) ─▶ aeroncache-sse (7072) ──┼─Aeron─▶ backend
-     └── http proxied by the UI server ─▶ aeroncache-http (7070) ─┘            (clustered | ephemeral)
+```mermaid
+flowchart LR
+  browser([Browser])
+  subgraph edge["Interfaces"]
+    ui["aeroncache-ui · :3000"]
+    http["aeroncache-http · :7070"]
+    ws["aeroncache-ws · :7071"]
+    sse["aeroncache-sse · :7072"]
+  end
+  backend[("Backend<br/>clustered (RAFT ×3) or ephemeral (×1)")]
+  browser -->|"HTTP, via UI server"| ui
+  ui -->|"Service DNS"| http
+  browser -. "ws · localhost" .-> ws
+  browser -. "sse · localhost" .-> sse
+  http ==>|Aeron| backend
+  ws ==>|Aeron| backend
+  sse ==>|Aeron| backend
 ```
 
 The UI server proxies the cache **HTTP API** over the in-cluster Service DNS (`aeroncache-http`),

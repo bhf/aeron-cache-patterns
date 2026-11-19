@@ -24,10 +24,16 @@ rather than polling the REST API.
 
 ## Architecture
 
-```
-  client ═══ WebSocket ═══▶ aeroncache-ws (7071) ──Aeron──▶ backend (clustered | ephemeral)
-                              ├─ /api/ws/v1/cache/…   (unidi subscribe)
-                              └─ /api/ws/v1/bidi       (bidi command surface)
+```mermaid
+flowchart LR
+  client([Client])
+  subgraph ws["aeroncache-ws · :7071"]
+    direction TB
+    unidi["unidi subscribe · /api/ws/v1/cache/…"]
+    bidi["bidi commands · /api/ws/v1/bidi"]
+  end
+  client ==>|WebSocket| ws
+  ws ==>|Aeron| backend[("Backend<br/>clustered or ephemeral")]
 ```
 
 The ws interface has **no HTTP REST data path** — it exposes the WebSocket routes plus the
