@@ -85,7 +85,9 @@ make cluster-down    # (optional) delete the whole cluster
   `clusterAddresses` / ephemeral endpoints), so all three address the same backend.
 - **UI wiring**: the UI image on GHCR is `aeroncache-ui` (the local build is `aeroncache-ui-nextjs`);
   the Makefile points the image there and sets `namespace` so the UI's ConfigMap lands in this
-  pattern's namespace. The endpoint defaults are kept (see Architecture).
+  pattern's namespace. The endpoint defaults are kept (see Architecture). The UI Service stays
+  `LoadBalancer` (its chart hardcodes `externalTrafficPolicy: Local`, invalid on a ClusterIP) —
+  access is via port-forward regardless.
 - **Verify** uses `common/smoke.sh` in `command` mode with a second port-forward (the UI), running
   the http round-trip plus the UI readiness check.
 
