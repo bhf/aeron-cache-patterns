@@ -12,8 +12,6 @@ const {
 } = Astro.props;
 
 const pageTitle = title.includes('Aeron Cache Patterns') ? title : `${title} · Aeron Cache Patterns`;
-const pathname = Astro.url.pathname.replace(/\/+$/, '') || '/';
-const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 ---
 
 <!doctype html>
@@ -37,10 +35,12 @@ const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.s
         </a>
         <div class="flex items-center gap-6 text-sm">
           <a
-            href="/"
-            class:list={['transition hover:text-sage-300', isActive('/') && pathname === '/' ? 'text-sage-300' : 'text-ink/80']}
+            href="https://aeron-cache.pages.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-ink/80 transition hover:text-sage-300"
           >
-            Patterns
+            Aeron Cache ↗
           </a>
           <a
             href="https://github.com/bhf/aeron-cache-patterns"
@@ -63,7 +63,7 @@ const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.s
       <slot />
     </main>
 
-    <footer class="mt-16 border-t border-white/10 bg-base-900/70 backdrop-blur-md">
+    <footer class="sticky bottom-0 z-40 mt-16 border-t border-white/10 bg-base-900/70 backdrop-blur-md">
       <div class="mx-auto flex max-w-content flex-wrap items-center justify-center gap-x-6 gap-y-2 px-5 py-4 font-mono text-xs text-ink/60">
         <a href="https://github.com/bhf/aeron-cache-patterns" target="_blank" rel="noopener noreferrer" class="transition hover:text-sage-300">
           bhf/aeron-cache-patterns
