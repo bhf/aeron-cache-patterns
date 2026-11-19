@@ -110,16 +110,113 @@ const pageTitle = title.includes('Aeron Cache Patterns') ? title : `${title} · 
         margin: 1.5rem 0;
       }
       .mermaid[data-processed] {
+        position: relative;
         padding: 1rem 1.15rem;
         border: 1px solid rgba(244, 246, 244, 0.1);
         border-radius: 0.75rem;
         background: rgba(8, 12, 10, 0.5);
         overflow-x: auto;
+        cursor: zoom-in;
+        transition: border-color 0.15s ease;
+      }
+      .mermaid[data-processed]:hover,
+      .mermaid[data-processed]:focus-visible {
+        border-color: rgba(95, 158, 120, 0.5);
+        outline: none;
       }
       .mermaid svg {
         max-width: 100%;
         height: auto;
       }
+      /* Per-diagram controls (Enlarge / New tab), shown on hover/focus. */
+      .mmd-tools {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.6rem;
+        display: flex;
+        gap: 0.35rem;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+      }
+      .mermaid[data-processed]:hover .mmd-tools,
+      .mermaid[data-processed]:focus-within .mmd-tools { opacity: 1; }
+      .mmd-tools button {
+        font-size: 0.68rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        color: rgba(184, 216, 192, 0.95);
+        background: rgba(8, 12, 10, 0.78);
+        border: 1px solid rgba(95, 158, 120, 0.35);
+        border-radius: 0.4rem;
+        padding: 0.12rem 0.45rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .mmd-tools button:hover { color: #d4e6d8; border-color: rgba(95, 158, 120, 0.7); background: rgba(8, 12, 10, 0.95); }
+      .mmd-modal-newtab {
+        position: absolute;
+        top: 0.65rem;
+        right: 3rem;
+        font-size: 0.72rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        color: rgba(184, 216, 192, 0.9);
+        text-decoration: none;
+      }
+      .mmd-modal-newtab:hover { color: #d4e6d8; }
+
+      /* Diagram modal (click a diagram to enlarge). */
+      .mmd-modal[hidden] { display: none; }
+      .mmd-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+      .mmd-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(5, 8, 6, 0.82);
+        backdrop-filter: blur(4px);
+      }
+      .mmd-modal-dialog {
+        position: relative;
+        max-width: 94vw;
+        max-height: 92vh;
+        overflow: auto;
+        background: rgba(15, 21, 18, 0.96);
+        border: 1px solid rgba(244, 246, 244, 0.12);
+        border-radius: 0.9rem;
+        padding: 2rem 1.5rem 1.5rem;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+      }
+      .mmd-modal-body { display: flex; justify-content: center; }
+      .mmd-modal-body svg {
+        max-width: none;
+        width: 100%;
+        height: auto;
+        max-height: 80vh;
+      }
+      .mmd-modal-close {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.6rem;
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        line-height: 1;
+        color: rgba(244, 246, 244, 0.7);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(244, 246, 244, 0.12);
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .mmd-modal-close:hover { color: #b8d8c0; border-color: rgba(95, 158, 120, 0.5); }
     </style>
 
     <!-- Render ```mermaid blocks into themed diagrams (Shiki skips them; see astro.config). -->
@@ -152,6 +249,68 @@ const pageTitle = title.includes('Aeron Cache Patterns') ? title : `${title} · 
         },
       });
 
+      // Serialize a rendered diagram SVG into a standalone dark-background HTML page, so it stays
+      // readable when opened on its own (the diagram text is light on transparent).
+      function diagramPageUrl(svg) {
+        const clone = svg.cloneNode(true);
+        clone.removeAttribute('style');
+        clone.setAttribute('width', '100%');
+        clone.removeAttribute('height');
+        const svgStr = new XMLSerializer().serializeToString(clone);
+        const html =
+          '<!doctype html><meta charset="utf-8"><title>Diagram</title>' +
+          '<style>html,body{margin:0;height:100%;background:#0b0f0d;display:flex;' +
+          'align-items:center;justify-content:center}svg{max-width:96vw;max-height:94vh;' +
+          'width:auto;height:auto}</style>' + svgStr;
+        return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+      }
+
+      function openInNewTab(svg) {
+        const url = diagramPageUrl(svg);
+        window.open(url, '_blank', 'noopener');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      }
+
+      // One shared modal, built lazily.
+      let modal, modalBody, modalNewTab, lastTrigger;
+      function buildModal() {
+        modal = document.createElement('div');
+        modal.className = 'mmd-modal';
+        modal.hidden = true;
+        modal.innerHTML =
+          '<div class="mmd-modal-backdrop"></div>' +
+          '<div class="mmd-modal-dialog" role="dialog" aria-modal="true" aria-label="Diagram">' +
+          '<a class="mmd-modal-newtab" target="_blank" rel="noopener">↗ new tab</a>' +
+          '<button class="mmd-modal-close" aria-label="Close diagram">×</button>' +
+          '<div class="mmd-modal-body"></div></div>';
+        modalBody = modal.querySelector('.mmd-modal-body');
+        modalNewTab = modal.querySelector('.mmd-modal-newtab');
+        const close = () => closeModal();
+        modal.querySelector('.mmd-modal-backdrop').addEventListener('click', close);
+        modal.querySelector('.mmd-modal-close').addEventListener('click', close);
+        document.body.appendChild(modal);
+      }
+      function openModal(svg, trigger) {
+        if (!modal) buildModal();
+        lastTrigger = trigger || null;
+        const clone = svg.cloneNode(true);
+        clone.removeAttribute('style'); // drop the inline max-width cap so it fills the modal
+        clone.setAttribute('width', '100%');
+        clone.removeAttribute('height');
+        modalBody.replaceChildren(clone);
+        const url = diagramPageUrl(svg);
+        modalNewTab.href = url;
+        modal.hidden = false;
+        modal.querySelector('.mmd-modal-close').focus();
+      }
+      function closeModal() {
+        if (!modal || modal.hidden) return;
+        modal.hidden = true;
+        modalBody.replaceChildren();
+        if (lastTrigger && lastTrigger.focus) lastTrigger.focus();
+      }
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
       const blocks = document.querySelectorAll('pre > code.language-mermaid');
       if (blocks.length) {
         blocks.forEach((code) => {
@@ -161,7 +320,39 @@ const pageTitle = title.includes('Aeron Cache Patterns') ? title : `${title} · 
           div.textContent = code.textContent || '';
           pre && pre.replaceWith(div);
         });
-        mermaid.run({ nodes: document.querySelectorAll('div.mermaid') });
+
+        mermaid.run({ nodes: document.querySelectorAll('div.mermaid') }).then(() => {
+          document.querySelectorAll('.mermaid[data-processed]').forEach((el) => {
+            const svg = el.querySelector('svg');
+            if (!svg) return;
+
+            // Clicking the diagram (or Enter/Space when focused) opens the modal.
+            el.setAttribute('role', 'button');
+            el.setAttribute('tabindex', '0');
+            el.setAttribute('aria-label', 'Enlarge diagram');
+            el.addEventListener('click', (e) => {
+              if (e.target.closest('.mmd-tools')) return; // let the buttons handle themselves
+              openModal(svg, el);
+            });
+            el.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(svg, el); }
+            });
+
+            // Explicit Enlarge / New tab controls.
+            const tools = document.createElement('div');
+            tools.className = 'mmd-tools';
+            const enlarge = document.createElement('button');
+            enlarge.type = 'button';
+            enlarge.textContent = '⤢ enlarge';
+            enlarge.addEventListener('click', (e) => { e.stopPropagation(); openModal(svg, el); });
+            const newtab = document.createElement('button');
+            newtab.type = 'button';
+            newtab.textContent = '↗ new tab';
+            newtab.addEventListener('click', (e) => { e.stopPropagation(); openInNewTab(svg); });
+            tools.append(enlarge, newtab);
+            el.appendChild(tools);
+          });
+        });
       }
     </script>
   </body>
