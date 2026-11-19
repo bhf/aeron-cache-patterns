@@ -1,0 +1,31 @@
+name: Aeron transport gateway
+
+# Runs the aeron-gateway pattern against both backends (clustered + ephemeral) via a matrix over the
+# reusable workflow. Fires only when this pattern, the shared pieces, or the reusable workflow change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/aeron-gateway/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/aeron-gateway.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/aeron-gateway/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/aeron-gateway.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  aeron-gateway:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: aeron-gateway
+      cache-type: ${{ matrix.cache-type }}
