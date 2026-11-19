@@ -1,0 +1,31 @@
+name: WebSocket interface
+
+# Runs the ws pattern against both backends (clustered + ephemeral) via a matrix over the reusable
+# workflow. Fires only when this pattern, the shared pieces, or the reusable workflow change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/ws/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/ws.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/ws/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/ws.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  ws:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: ws
+      cache-type: ${{ matrix.cache-type }}
