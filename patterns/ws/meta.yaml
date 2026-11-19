@@ -1,0 +1,10 @@
+title: "WebSocket interface"
+slug: "ws"
+order: 11
+category: "Interfaces"
+summary: "A backend plus only the WebSocket interface — uni-directional subscription routes and the bidirectional /api/ws/v1/bidi command surface. Clustered or ephemeral via CACHE_TYPE."
+status: "ready"
+difficulty: "beginner"
+prereqs: []
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-ws]
+projectItem: "Pattern: ws interface — unidi + bidi (clustered + ephemeral)"

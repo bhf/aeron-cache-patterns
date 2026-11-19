@@ -1,0 +1,8 @@
+# Overlay for the ws interface, common to both cache types. Image repository/tag/pullPolicy come
+# from versions.env via the Makefile (ghcr_image); cacheMode / clusterAddresses / ephemeral
+# endpoints are set per CACHE_TYPE in the Makefile.
+#
+# ClusterIP so `make verify` reaches the interface via port-forward (the chart defaults to
+# LoadBalancer). For a LoadBalancer locally, drop this and run `minikube tunnel`.
+service:
+  type: ClusterIP

@@ -34,6 +34,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Node
+        # Some patterns verify with a small Node script (e.g. the ws bidi round-trip, which uses the
+        # global WebSocket available from Node 22). Harmless for patterns that don't.
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Create kind cluster
         uses: helm/kind-action@v1.10.0
         with:

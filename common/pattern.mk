@@ -30,7 +30,7 @@ HELM          ?= helm
 KUBECTL       ?= kubectl
 
 # Exported so common/smoke.sh picks them up without per-pattern wiring.
-export NAMESPACE SMOKE_SERVICE SMOKE_PORT LOCAL_PORT CACHE_ID
+export NAMESPACE SMOKE_SERVICE SMOKE_PORT LOCAL_PORT CACHE_ID SMOKE_MODE SMOKE_CMD
 
 .DEFAULT_GOAL := help
 
