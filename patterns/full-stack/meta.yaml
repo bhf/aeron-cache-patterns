@@ -1,0 +1,10 @@
+title: "Full stack (http + ws + sse + UI)"
+slug: "full-stack"
+order: 20
+category: "Full stack"
+summary: "The complete web stack — a backend plus the http, ws and sse interfaces and the Next.js UI. The only pattern with the UI. Clustered or ephemeral via CACHE_TYPE."
+status: "ready"
+difficulty: "intermediate"
+prereqs: []
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-http, aeroncache-ws, aeroncache-sse, aeroncache-ui-nextjs]
+projectItem: "Pattern: full-stack — http + ws + sse + UI (clustered + ephemeral)"

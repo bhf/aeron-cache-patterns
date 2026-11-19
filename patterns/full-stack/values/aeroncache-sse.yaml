@@ -1,0 +1,5 @@
+# Overlay for the sse interface. Image from versions.env via the Makefile (ghcr_image);
+# cacheMode / clusterAddresses / ephemeral endpoints set per CACHE_TYPE. ClusterIP so verify and
+# the browser reach it via port-forward.
+service:
+  type: ClusterIP

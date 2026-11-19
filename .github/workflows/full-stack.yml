@@ -1,0 +1,32 @@
+name: Full stack
+
+# Runs the full-stack pattern against both backends (clustered + ephemeral) via a matrix over the
+# reusable workflow. Fires only when this pattern, the shared pieces, or the reusable workflow change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/full-stack/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/full-stack.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/full-stack/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/full-stack.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  full-stack:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: full-stack
+      cache-type: ${{ matrix.cache-type }}
+      wait-timeout: "600s"
