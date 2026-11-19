@@ -1,0 +1,31 @@
+name: HTTP interface
+
+# Runs the http pattern against both backends (clustered + ephemeral) via a matrix over the
+# reusable workflow. Fires only when this pattern, the shared pieces, or the reusable workflow change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/http/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/http.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/http/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/http.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  http:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: http
+      cache-type: ${{ matrix.cache-type }}

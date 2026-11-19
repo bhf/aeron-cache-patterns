@@ -1,0 +1,10 @@
+title: "HTTP interface"
+slug: "http"
+order: 10
+category: "Interfaces"
+summary: "A backend plus only the HTTP request/response interface. Runs against a clustered (RAFT) or ephemeral (SINGLE) backend via CACHE_TYPE."
+status: "ready"
+difficulty: "beginner"
+prereqs: []
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-http]
+projectItem: "Pattern: http interface (clustered + ephemeral)"
