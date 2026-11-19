@@ -93,4 +93,4 @@ make cluster-down    # (optional) delete the whole cluster
 
 - Vendored from [aeron-cache/k8s/helm/aeroncache-monolith](https://github.com/bhf/aeron-cache/tree/main/k8s/helm/aeroncache-monolith) (pinned SHA in `charts/VENDOR.lock`)
 - Upstream monolith helm CI: [helm-ci-monolith.yaml](https://github.com/bhf/aeron-cache/blob/main/.github/workflows/helm-ci-monolith.yaml)
-- Aeron Cache docs: https://aeron-cache.pages.dev
+- Aeron Cache site: https://aeron-cache.pages.dev

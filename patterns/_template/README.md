@@ -54,4 +54,4 @@ Cache mechanics. Link to the upstream deep dives rather than restating them.
 ## References
 
 - Vendored from upstream charts: [aeron-cache/k8s/helm](https://github.com/bhf/aeron-cache/tree/main/k8s/helm) (pinned SHA in `charts/VENDOR.lock`)
-- Aeron Cache docs: https://aeron-cache.pages.dev
+- Aeron Cache site: https://aeron-cache.pages.dev
