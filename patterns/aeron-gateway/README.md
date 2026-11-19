@@ -14,8 +14,10 @@ throughput way in, and a bidirectional (request/response + streaming) transport.
 Reach for this when a client needs the fastest path to the cache and can use the Aeron transport
 (the Java and Rust client libraries do), rather than a web protocol.
 
-`CACHE_TYPE` picks the backend — **`clustered`** (3-node RAFT, default) or **`ephemeral`**
-(single-node SINGLE).
+**Clustered only.** Unlike the http/ws/sse patterns, this pattern runs against the clustered (RAFT)
+backend only. The gateway is not supported against the ephemeral (SINGLE) backend — upstream omits
+the gateway from its ephemeral deployments, and the gateway has no ephemeral response-channel wiring,
+so it never becomes ready against a single ephemeral node. `make up CACHE_TYPE=ephemeral` is rejected.
 
 ## Architecture
 
@@ -32,16 +34,13 @@ co-located **clustertools** sidecar that exposes the shared Aeron media-driver c
 
 - A local Kubernetes cluster via **minikube** (the default) — see the [repo README](../../README.md).
 - `kubectl`, `helm`, `curl`, `jq`. Run `make doctor`.
-- Clustered runs 4 pods (3 cluster nodes + gateway); ephemeral runs 2.
+- Runs 4 pods (3 cluster nodes + gateway).
 
 ## Run
 
 ```bash
-make up                       # clustered backend + aeron gateway
-# or
-make up CACHE_TYPE=ephemeral  # single-node ephemeral backend + aeron gateway
-
-make verify                   # health + media-driver counters check
+make up        # clustered backend + aeron gateway
+make verify    # health + media-driver counters check
 ```
 
 To use kind instead (as CI does): add `CLUSTER=kind`.
@@ -71,11 +70,8 @@ make cluster-down    # (optional) delete the whole cluster
 
 ## How it works
 
-- **Three vendored charts** (`charts/VENDOR.lock` pins the upstream commit): the two backends
-  (`aeroncache-cluster`, `aeroncache-ephemeral`) and `aeroncache-gateway` (which carries the
-  clustertools sidecar).
-- **`CACHE_TYPE` wiring**: clustered uses chart defaults; ephemeral sets only `cacheMode=SINGLE` and
-  `clusterAddresses` (the gateway needs no separate response-channel endpoints).
+- **Two vendored charts** (`charts/VENDOR.lock` pins the upstream commit): `aeroncache-cluster` (the
+  clustered backend) and `aeroncache-gateway` (which carries the clustertools sidecar).
 - **Values overlay** sets a `ClusterIP` Service so `make verify` reaches the health server via
   port-forward. The chart defaults to `LoadBalancer` to expose the Aeron UDP ports for real clients
   (use `minikube tunnel` for that locally).
@@ -84,6 +80,6 @@ make cluster-down    # (optional) delete the whole cluster
 
 ## References
 
-- Vendored from [aeron-cache/k8s/helm](https://github.com/bhf/aeron-cache/tree/main/k8s/helm) (`aeroncache-cluster`, `aeroncache-ephemeral`, `aeroncache-gateway`; pinned SHA in `charts/VENDOR.lock`)
+- Vendored from [aeron-cache/k8s/helm](https://github.com/bhf/aeron-cache/tree/main/k8s/helm) (`aeroncache-cluster`, `aeroncache-gateway`; pinned SHA in `charts/VENDOR.lock`)
 - [BiDi Aeron Transport Gateway SBE schema](https://github.com/bhf/aeron-cache/blob/main/cache-aeron-gateway/aeron-gateway-server/src/main/resources/sbe/gateway-schema.xml)
 - Aeron Cache site: https://aeron-cache.pages.dev

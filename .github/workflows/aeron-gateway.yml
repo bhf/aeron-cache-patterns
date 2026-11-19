@@ -20,12 +20,9 @@ on:
       - '.github/workflows/_pattern-ci.yml'
 
 jobs:
+  # Clustered only — the gateway is not supported against the ephemeral backend.
   aeron-gateway:
-    strategy:
-      fail-fast: false
-      matrix:
-        cache-type: [clustered, ephemeral]
     uses: ./.github/workflows/_pattern-ci.yml
     with:
       pattern: aeron-gateway
-      cache-type: ${{ matrix.cache-type }}
+      cache-type: clustered
