@@ -5,6 +5,7 @@ import { getCollection } from 'astro:content';
 export const CATEGORY_ORDER = [
   'Foundations',
   'Interfaces',
+  'Full stack',
   'Gateways',
   'Autoscaling',
   'Near cache',

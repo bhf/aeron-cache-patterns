@@ -1,0 +1,8 @@
+# Overlay for the Next.js UI. Image (ghcr.io/bhf/aeroncache-ui) from the Makefile via ghcr_image.
+# ClusterIP so the UI is reached via port-forward (chart defaults to LoadBalancer).
+#
+# The endpoint defaults are intentionally kept: the UI server proxies the cache HTTP API over the
+# in-cluster Service DNS (aeroncache-http), while the browser opens ws/sse directly on localhost via
+# port-forward. So to use the UI, port-forward the UI (3000) plus ws (7071) and sse (7072).
+service:
+  type: ClusterIP
