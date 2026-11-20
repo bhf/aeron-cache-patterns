@@ -25,6 +25,13 @@ SMOKE_CMD     := bash verify-gateway.sh
 
 include ../../common/pattern.mk
 
+# Exerciser: verify-gateway.sh runs the published aeron-sample (an actual AeronGatewayClient) as a
+# one-shot Job to drive a real data-path round-trip over Aeron. These are resolved after the include
+# (AERON_SAMPLE_* from versions.env, GHCR_PULL_POLICY from ghcr.mk) and exported so the verify script
+# (via common/smoke.sh) picks them up. GATEWAY_HOST is the gateway Service the Job dials over UDP.
+GATEWAY_HOST ?= aeroncache-gateway
+export AERON_SAMPLE_IMAGE AERON_SAMPLE_TAG GHCR_PULL_POLICY GATEWAY_HOST
+
 # --- Backend selection (CACHE_TYPE) -----------------------------------------
 # GATEWAY_FLAGS points the gateway at the selected backend. In clustered (RAFT) mode the gateway
 # chart's defaults already address the cluster, so no flags are needed. In ephemeral (SINGLE) mode
