@@ -1,12 +1,16 @@
 # Pattern: aeron-gateway
 #
-# A clustered backend plus the SBE-Aeron transport gateway — the bidirectional "bidi-aeron"
-# interface. Its cache API is carried over Aeron (UDP), not HTTP, so verify is a health check plus a
-# clustertools media-driver counters scrape (not an HTTP data round-trip).
+# A backend (clustered or ephemeral) plus the SBE-Aeron transport gateway — the bidirectional
+# "bidi-aeron" interface. Its cache API is carried over Aeron (UDP), not HTTP, so verify is a health
+# check plus a clustertools media-driver counters scrape (not an HTTP data round-trip).
 #
-# Clustered only: the gateway is not supported against the ephemeral (SINGLE) backend. Upstream omits
-# the gateway from its ephemeral deployments, and the gateway has no ephemeral response-channel
-# wiring, so it never becomes ready against a single ephemeral node.
+# CACHE_TYPE selects the backend:
+#   make up                       # clustered RAFT backend (default)
+#   make up CACHE_TYPE=ephemeral  # single-node ephemeral (SINGLE) backend
+#
+# Ephemeral support relies on the gateway chart's EPHEMERAL_REQUEST_ENDPOINT /
+# EPHEMERAL_RESPONSE_CONTROL_ENDPOINT wiring (upstream sha 510183b1); against an ephemeral backend the
+# gateway connects to the single node's request/response-control endpoints instead of the RAFT cluster.
 
 PATTERN       := aeron-gateway
 NAMESPACE     ?= aeroncache-patterns
@@ -21,8 +25,27 @@ SMOKE_CMD     := bash verify-gateway.sh
 
 include ../../common/pattern.mk
 
-ifneq ($(CACHE_TYPE),clustered)
-  $(error aeron-gateway only supports CACHE_TYPE=clustered — the gateway is not supported against the ephemeral backend)
+# --- Backend selection (CACHE_TYPE) -----------------------------------------
+# GATEWAY_FLAGS points the gateway at the selected backend. In clustered (RAFT) mode the gateway
+# chart's defaults already address the cluster, so no flags are needed. In ephemeral (SINGLE) mode
+# the gateway connects to the single node's request/response-control endpoints via the ephemeral
+# chart's response-channel wiring.
+ifeq ($(CACHE_TYPE),clustered)
+  BACKEND_RELEASE := aeroncache-cluster
+  BACKEND_CHART   := ./charts/aeroncache-cluster
+  BACKEND_EXTRA   :=
+  GATEWAY_FLAGS   :=
+else ifeq ($(CACHE_TYPE),ephemeral)
+  BACKEND_RELEASE := aeroncache-ephemeral
+  BACKEND_CHART   := ./charts/aeroncache-ephemeral
+  BACKEND_EXTRA   := --set cacheMode=SINGLE
+  EPH_HOST        := aeroncache-ephemeral-0.aeroncache-ephemeral.$(NAMESPACE).svc.cluster.local
+  GATEWAY_FLAGS   := --set cacheMode=SINGLE \
+                     --set clusterAddresses=$(EPH_HOST) \
+                     --set ephemeralRequestEndpoint=$(EPH_HOST):8075 \
+                     --set ephemeralResponseControlEndpoint=$(EPH_HOST):8076
+else
+  $(error CACHE_TYPE must be 'clustered' or 'ephemeral' (got '$(CACHE_TYPE)'))
 endif
 
 BACKEND_GHCR := $(call ghcr_image,aeroncache-cluster,image) \
@@ -32,14 +55,16 @@ GATEWAY_GHCR := $(call ghcr_image,aeroncache-gateway,image) \
 
 .PHONY: deploy undeploy
 
-deploy: ## Install the clustered backend + the aeron transport gateway
+deploy: ## Install the $(CACHE_TYPE) backend + the aeron transport gateway
+	@echo "Deploying aeron-gateway pattern with CACHE_TYPE=$(CACHE_TYPE)"
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
-	  aeroncache-cluster ./charts/aeroncache-cluster \
-	  $(BACKEND_GHCR) $(ghcr_secret)
+	  $(BACKEND_RELEASE) $(BACKEND_CHART) \
+	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-gateway ./charts/aeroncache-gateway -f values/aeroncache-gateway.yaml \
-	  $(GATEWAY_GHCR) $(ghcr_secret)
+	  $(GATEWAY_FLAGS) $(GATEWAY_GHCR) $(ghcr_secret)
 
 undeploy: ## Uninstall the gateway + backend
 	$(HELM) uninstall -n $(NAMESPACE) aeroncache-gateway --ignore-not-found
 	$(HELM) uninstall -n $(NAMESPACE) aeroncache-cluster --ignore-not-found
+	$(HELM) uninstall -n $(NAMESPACE) aeroncache-ephemeral --ignore-not-found
