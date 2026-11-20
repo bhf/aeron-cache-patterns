@@ -25,7 +25,7 @@ downstream client-facing Aeron ports are the same in both.
 
 ```mermaid
 flowchart LR
-  client([Aeron client]) ==>|"SBE / Aeron UDP · :7075 req · :7076 resp"| gw["aeroncache-gateway"]
+  exer(["aeron-sample exerciser Job<br/>(AeronGatewayClient)"]) ==>|"SBE / Aeron UDP · :7075 req · :7076 resp"| gw["aeroncache-gateway"]
   gw -->|"HTTP health :7073"| health["/liveness · /readiness"]
   gw -->|counters| ct["clustertools sidecar · :7080"]
   gw ==>|Aeron| cluster[("Clustered backend · RAFT ×3<br/>(or ephemeral · SINGLE ×1)")]
@@ -33,6 +33,13 @@ flowchart LR
 
 The gateway also runs an HTTP **health server** (`/liveness/`, `/readiness/` on 7073) and a
 co-located **clustertools** sidecar that exposes the shared Aeron media-driver counters on 7080.
+
+Since the gateway speaks only SBE-over-Aeron (curl can't drive it), `make verify` exercises the data
+path with a real Aeron client: a one-shot **exerciser Job** running the published
+[`aeron-sample`](https://github.com/bhf/aeron-cache-embedded/tree/main/samples/java/aeron-sample)
+(`AeronGatewayClient`). The client only dials **out** to the gateway (request `:7075`,
+response-control `:7076`) — the gateway creates each client's response publication lazily over an MDC
+control channel — so it needs no inbound port.
 
 ## Prerequisites
 
@@ -53,18 +60,24 @@ To use kind instead (as CI does): add `CLUSTER=kind`.
 ## Verify
 
 The gateway's cache API is over Aeron (UDP), not HTTP, so there is no HTTP data round-trip to run.
-Instead `make verify`:
+Instead `make verify` ([`verify-gateway.sh`](verify-gateway.sh)):
 
-1. checks the gateway's **liveness/readiness** (HTTP health server on 7073), then
-2. ([`verify-gateway.sh`](verify-gateway.sh)) port-forwards to the gateway pod's **clustertools**
-   sidecar (7080) and scrapes `/api/v1/clustertools/counters`, asserting a **populated counter
-   set** — a running media driver always publishes system counters, so this confirms the gateway's
-   Aeron stack is actually up.
+1. checks the gateway's **liveness/readiness** (HTTP health server on 7073),
+2. port-forwards to the gateway pod's **clustertools** sidecar (7080) and scrapes
+   `/api/v1/clustertools/counters`, asserting a **populated counter set** — a running media driver
+   always publishes system counters, so this confirms the gateway's Aeron stack is up, then
+3. runs the **exerciser Job** (the published `aeron-sample`) against the gateway over UDP and asserts
+   the real data-path round-trip from its logs: it connects (`Connected to gateway.`), writes and
+   reads back its own item (`Get aeron-key -> aeron-value`), and completes the full scenario
+   (streaming subscription, embedded cache, counters, timers → `Done.`).
 
-A healthy deployment ends with `GATEWAY COUNTERS OK` then `SMOKE PASSED`.
+A healthy deployment ends with `GATEWAY DATA-PATH OK` then `SMOKE PASSED`.
 
-> To exercise the data path end-to-end you need an Aeron transport client (the Java or Rust client
-> libraries). That is out of scope for this pattern's smoke; see the Aeron Cache client docs.
+> The sample exits 0 even if it can't reach the gateway (it logs the error and returns), so the check
+> asserts on **log content**, not the Job's exit status. The image is pinned in
+> [`versions.env`](../../versions.env) (`AERON_SAMPLE_IMAGE` / `AERON_SAMPLE_TAG`), independent of the
+> backend release, and is published from
+> [bhf/aeron-cache-embedded](https://github.com/bhf/aeron-cache-embedded/tree/main/samples/java/aeron-sample).
 
 ## Teardown
 
@@ -83,11 +96,16 @@ make cluster-down    # (optional) delete the whole cluster
 - **Values overlay** sets a `ClusterIP` Service so `make verify` reaches the health server via
   port-forward. The chart defaults to `LoadBalancer` to expose the Aeron UDP ports for real clients
   (use `minikube tunnel` for that locally).
-- **Verify** uses `common/smoke.sh` in `command` mode (health gate) plus a counters scrape against
-  the gateway pod — the clustertools port (7080) is not exposed via the Service.
+- **Verify** uses `common/smoke.sh` in `command` mode (health gate), then `verify-gateway.sh` does a
+  counters scrape against the gateway pod (the clustertools port 7080 is not exposed via the Service)
+  and runs the **exerciser Job** ([`exerciser-job.yaml`](exerciser-job.yaml)). The Job is owned by
+  verify (not `make up`): it's applied fresh, waited on, asserted from its logs, and cleaned up — so a
+  completed Job pod never trips `make wait`. It gives Aeron's embedded media driver a larger `/dev/shm`
+  (the default 64Mi is too small for the log buffers).
 
 ## References
 
 - Vendored from [aeron-cache/k8s/helm](https://github.com/bhf/aeron-cache/tree/main/k8s/helm) (`aeroncache-cluster`, `aeroncache-ephemeral`, `aeroncache-gateway`; pinned SHA in `charts/VENDOR.lock`)
 - [BiDi Aeron Transport Gateway SBE schema](https://github.com/bhf/aeron-cache/blob/main/cache-aeron-gateway/aeron-gateway-server/src/main/resources/sbe/gateway-schema.xml)
+- Exerciser image: [`aeroncache-embedded-aeron-sample`](https://github.com/bhf/aeron-cache-embedded/tree/main/samples/java/aeron-sample) (the Aeron-gateway `AeronGatewayClient` sample, published to GHCR)
 - Aeron Cache site: https://aeron-cache.pages.dev

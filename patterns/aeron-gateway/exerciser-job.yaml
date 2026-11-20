@@ -1,0 +1,47 @@
+# One-shot exerciser for the Aeron transport gateway.
+#
+# The gateway speaks only SBE-over-Aeron (UDP), so — unlike http/ws/sse — curl can't drive it. This
+# Job runs the published aeron-sample (bhf/aeron-cache-embedded) as a real AeronGatewayClient: it
+# connects over UDP, does cache CRUD + a streaming subscription + counters, and exits. verify-gateway.sh
+# applies it, waits for completion, and asserts the round-trip from its logs (the sample exits 0 even
+# on connect failure, so the check is log-based, not exit-code-based).
+#
+# Applied via envsubst by verify-gateway.sh; placeholders: AERON_SAMPLE_IMAGE, AERON_SAMPLE_TAG,
+# GHCR_PULL_POLICY, GATEWAY_HOST.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: aeron-sample-exerciser
+  labels:
+    app.kubernetes.io/name: aeron-sample-exerciser
+    app.kubernetes.io/part-of: aeroncache
+spec:
+  backoffLimit: 0            # the sample is a one-shot scenario; no retries (it exits 0 regardless)
+  ttlSecondsAfterFinished: 120
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aeron-sample-exerciser
+        app.kubernetes.io/part-of: aeroncache
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: aeron-sample
+          image: "${AERON_SAMPLE_IMAGE}:${AERON_SAMPLE_TAG}"
+          imagePullPolicy: ${GHCR_PULL_POLICY}
+          env:
+            # The JVM honours JAVA_TOOL_OPTIONS automatically; the image bakes the main class and
+            # --add-opens flags into its entrypoint, so we pass only the gateway host here. The client
+            # dials OUT to the gateway (request :7075, response-control :7076) — no inbound port.
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Daeron.gateway.host=${GATEWAY_HOST}"
+          volumeMounts:
+            # Aeron's embedded UDP media driver mmaps its log buffers under /dev/shm; the k8s default
+            # (64Mi) is too small for the default term buffers, so give it a larger tmpfs.
+            - name: dev-shm
+              mountPath: /dev/shm
+      volumes:
+        - name: dev-shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 512Mi
