@@ -33,7 +33,7 @@ deploy: ## Install the monolith backend + the Next.js UI
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  $(RELEASE_UI) ./charts/aeroncache-ui-nextjs -f values/aeroncache-ui-nextjs.yaml \
 	  --set namespace=$(NAMESPACE) \
-	  $(call ghcr_image,aeroncache-ui,image) $(ghcr_secret)
+	  $(AUTOSCALE_FLAGS) $(call ghcr_image,aeroncache-ui,image) $(ghcr_secret)
 
 undeploy: ## Uninstall the UI + the monolith backend
 	$(HELM) uninstall -n $(NAMESPACE) $(RELEASE_UI) --ignore-not-found

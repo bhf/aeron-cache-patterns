@@ -72,6 +72,41 @@ OBS_CHART     := $(ROOT_DIR)/common/observability
 OBS_DASHBOARD ?= $(CURDIR)/dashboards/$(PATTERN).json
 OBS_DASHBOARD_FLAG = $(if $(wildcard $(OBS_DASHBOARD)),--set-file grafana.dashboards.$(PATTERN)=$(OBS_DASHBOARD))
 
+# Autoscaling (AUTOSCALE): opt into a HorizontalPodAutoscaler on the pattern's stateless interface
+# tier — the http/ws/sse/gateway interfaces and the Next.js UI. It is deliberately NEVER applied to the
+# RAFT cluster / ephemeral backends or the monolith: their membership is fixed (consensus + stable
+# response-channel addressing), so autoscaling them would break the cache. Like NEAR_CACHE and
+# OBSERVABILITY it is a deployment OPTION on the normal lifecycle, not a separate flow — `make up
+# AUTOSCALE=true` sets autoscaling.enabled=true on the interface chart(s) and, because CPU HPAs compute
+# utilization as a fraction of the pod's CPU request, the resource requests that make that defined. It
+# composes with CACHE_TYPE, NEAR_CACHE and OBSERVABILITY:
+#   make up AUTOSCALE=true
+#   make up AUTOSCALE=true OBSERVABILITY=true   # watch the replica count climb on the Grafana dashboard
+# The bounds and target are tunable on the same command line:
+#   make up AUTOSCALE=true HPA_MIN=2 HPA_MAX=8 HPA_CPU=50
+# HPAs need metrics-server in the cluster; `make cluster-up` (and so `make up`) installs it when
+# AUTOSCALE=true (minikube addon / kind manifest). Where an interface speaks HTTP, `make verify-hpa`
+# drives load against it and watches the HPA scale up (see the gated target below).
+AUTOSCALE ?= false
+ifeq ($(filter $(AUTOSCALE),true false),)
+  $(error AUTOSCALE must be 'true' or 'false' (got '$(AUTOSCALE)'))
+endif
+# Demo-sane defaults (the chart scaffold ships min 1 / max 100): a small, visible scale range and a
+# modest request so a load generator can cross the target quickly on a laptop cluster.
+HPA_MIN         ?= 2
+HPA_MAX         ?= 5
+HPA_CPU         ?= 60
+HPA_CPU_REQUEST ?= 100m
+HPA_MEM_REQUEST ?= 256Mi
+# Applied to an interface chart's helm install (never the backend install). Empty when disabled.
+AUTOSCALE_FLAGS = $(if $(filter true,$(AUTOSCALE)),\
+  --set autoscaling.enabled=true \
+  --set autoscaling.minReplicas=$(HPA_MIN) \
+  --set autoscaling.maxReplicas=$(HPA_MAX) \
+  --set autoscaling.targetCPUUtilizationPercentage=$(HPA_CPU) \
+  --set resources.requests.cpu=$(HPA_CPU_REQUEST) \
+  --set resources.requests.memory=$(HPA_MEM_REQUEST))
+
 # Exported so common/smoke.sh picks them up without per-pattern wiring.
 export NAMESPACE SMOKE_SERVICE SMOKE_PORT LOCAL_PORT CACHE_ID SMOKE_MODE SMOKE_CMD \
        SMOKE_SERVICE2 SMOKE_PORT2 LOCAL_PORT2
@@ -87,9 +122,11 @@ help: ## Show this pattern's targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort -u \
 	  | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-13s\033[0m %s\n",$$1,$$2}'
 	@$(or $(NEAR_HELP),true)
+	@$(or $(HPA_HELP),true)
 
 cluster-up: ## Create/start the local cluster (minikube; CLUSTER=kind for kind)
 	@CLUSTER=$(CLUSTER) CLUSTER_NAME=$(CLUSTER_NAME) KIND_CONFIG=$(KIND_CONFIG) \
+	  AUTOSCALE=$(AUTOSCALE) METRICS_SERVER=$(METRICS_SERVER) \
 	  bash $(COMMON_DIR)/cluster.sh cluster_up
 
 cluster-down: ## Delete the local cluster
@@ -123,6 +160,20 @@ NEAR_HELP = printf "  \033[36m%-13s\033[0m %s\n" "verify-near" "Near-cache smoke
 
 verify-near:
 	@SMOKE_MODE=command SMOKE_CMD='$(NEAR_CMD)' bash $(COMMON_DIR)/smoke.sh
+endif
+
+# verify-hpa: an operator-only convenience that drives HTTP load against the interface and watches the
+# HorizontalPodAutoscaler scale the replica count up. Defined only for patterns whose primary smoke
+# Service is an HTTP cache interface the create/put/get loop can hammer (they set HPA_LOAD := true
+# before including this file); it is NOT wired into CI. It needs the pattern deployed with
+# AUTOSCALE=true. Like verify-near it is advertised via HPA_HELP (the help target greps raw file text
+# and cannot see this ifeq, so a `## ` comment would list it for every pattern).
+ifeq ($(strip $(HPA_LOAD)),true)
+.PHONY: verify-hpa
+HPA_HELP = printf "  \033[36m%-13s\033[0m %s\n" "verify-hpa" "Drive HTTP load and watch the interface HPA scale up (needs AUTOSCALE=true)"
+
+verify-hpa:
+	@SMOKE_MODE=command SMOKE_CMD='bash $(COMMON_DIR)/hpa-load.sh' bash $(COMMON_DIR)/smoke.sh
 endif
 
 wait: ## Wait for all pods in the namespace to be Ready

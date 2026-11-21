@@ -25,6 +25,10 @@ SMOKE_CMD      := bash verify-fullstack.sh
 # independent near caches (http, ws, sse) went warm, via each interface's own /prometheus near gauge.
 NEAR_CMD       := bash verify-near.sh
 
+# The primary smoke Service is the HTTP interface, so this pattern offers `make verify-hpa` (drive load
+# at http and watch its HPA scale). AUTOSCALE=true scales all of http/ws/sse + the UI.
+HPA_LOAD       := true
+
 include ../../common/pattern.mk
 
 # --- Backend selection (CACHE_TYPE) -----------------------------------------
@@ -60,17 +64,17 @@ deploy: ## Install the $(CACHE_TYPE) backend + http/ws/sse + UI
 	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-http ./charts/aeroncache-http -f values/aeroncache-http.yaml \
-	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)
+	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(AUTOSCALE_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-ws ./charts/aeroncache-ws -f values/aeroncache-ws.yaml \
-	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-ws,image) $(ghcr_secret)
+	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(AUTOSCALE_FLAGS) $(call ghcr_image,aeroncache-ws,image) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-sse ./charts/aeroncache-sse -f values/aeroncache-sse.yaml \
-	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-sse,image) $(ghcr_secret)
+	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(AUTOSCALE_FLAGS) $(call ghcr_image,aeroncache-sse,image) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-ui-nextjs ./charts/aeroncache-ui-nextjs -f values/aeroncache-ui-nextjs.yaml \
 	  --set namespace=$(NAMESPACE) \
-	  $(call ghcr_image,aeroncache-ui,image) $(ghcr_secret)
+	  $(AUTOSCALE_FLAGS) $(call ghcr_image,aeroncache-ui,image) $(ghcr_secret)
 
 undeploy: ## Uninstall the UI + interfaces + backend
 	$(HELM) uninstall -n $(NAMESPACE) aeroncache-ui-nextjs --ignore-not-found

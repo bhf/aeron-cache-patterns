@@ -6,14 +6,38 @@
 #
 # Usage: cluster.sh <function>      e.g. cluster.sh cluster_up
 # Env:
-#   CLUSTER       minikube | kind   (default minikube)
-#   CLUSTER_NAME  profile / cluster name (default aeroncache-patterns)
-#   KIND_CONFIG   optional path to a kind config (only used when CLUSTER=kind)
-#   MINIKUBE_ARGS optional extra args for `minikube start`
+#   CLUSTER        minikube | kind   (default minikube)
+#   CLUSTER_NAME   profile / cluster name (default aeroncache-patterns)
+#   KIND_CONFIG    optional path to a kind config (only used when CLUSTER=kind)
+#   MINIKUBE_ARGS  optional extra args for `minikube start`
+#   AUTOSCALE      true installs metrics-server (HPAs need it); set by pattern.mk from make
+#   METRICS_SERVER true forces metrics-server install even without AUTOSCALE
 set -euo pipefail
 
 CLUSTER="${CLUSTER:-minikube}"
 CLUSTER_NAME="${CLUSTER_NAME:-aeroncache-patterns}"
+METRICS_SERVER_VERSION="${METRICS_SERVER_VERSION:-v0.7.2}"
+
+# metrics-server powers HorizontalPodAutoscalers (and `kubectl top`). Installed only when autoscaling
+# is requested so the default/CI path stays lean. Idempotent: re-running just re-applies.
+ensure_metrics_server() {
+  [[ "${AUTOSCALE:-false}" == "true" || "${METRICS_SERVER:-false}" == "true" ]] || return 0
+  case "$CLUSTER" in
+    minikube)
+      echo "Enabling metrics-server (minikube addon)..."
+      minikube addons enable metrics-server -p "$CLUSTER_NAME"
+      ;;
+    kind)
+      echo "Installing metrics-server ${METRICS_SERVER_VERSION} (kind)..."
+      kubectl apply -f \
+        "https://github.com/kubernetes-sigs/metrics-server/releases/download/${METRICS_SERVER_VERSION}/components.yaml"
+      # kind nodes serve kubelet metrics with self-signed certs; let metrics-server trust them.
+      kubectl patch -n kube-system deployment metrics-server --type=json \
+        -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
+      kubectl -n kube-system rollout status deployment metrics-server --timeout=120s
+      ;;
+  esac
+}
 
 cluster_up() {
   case "$CLUSTER" in
@@ -42,6 +66,7 @@ cluster_up() {
       exit 2
       ;;
   esac
+  ensure_metrics_server
 }
 
 cluster_down() {

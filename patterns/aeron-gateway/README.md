@@ -134,6 +134,31 @@ Confirm Prometheus discovered the pods with `make observability-prometheus`
 Add it to, or remove it from, an already-running pattern on its own with `make observability-up` /
 `make observability-down`; `make down` removes it too.
 
+## Autoscaling (optional)
+
+Put a **HorizontalPodAutoscaler** on the gateway — an opt-in deployment option like the near cache and
+observability. `AUTOSCALE=true` sets `autoscaling.enabled=true` on the gateway chart, gives the pods the
+CPU/memory **requests** a CPU HPA needs, and (via `make cluster-up`) installs **metrics-server**:
+
+```bash
+make up AUTOSCALE=true                        # the gateway scales between 2 and 5 replicas at 60% CPU
+make up AUTOSCALE=true HPA_MIN=2 HPA_MAX=8 HPA_CPU=50   # tunable; composes with OBSERVABILITY/NEAR_CACHE
+```
+
+The gateway's data path is Aeron (UDP), not HTTP, so there is no `make verify-hpa` helper here (unlike
+the http/full-stack patterns) — but the HPA scales on CPU regardless of how the load arrives. Drive it
+with the `aeron-sample` exerciser (the same client `make verify-near` runs as a Job) or your own
+`AeronGatewayClient`, and watch the autoscaler react:
+
+```bash
+kubectl get hpa -w -n aeroncache-patterns     # TARGETS crosses 60% -> REPLICAS rises (metrics lag ~15-30s)
+```
+
+With `OBSERVABILITY=true` the replica count also shows up on the Grafana dashboard.
+
+> The RAFT cluster / ephemeral **backend** is never autoscaled: its membership is fixed, so scaling it
+> would break consensus. `AUTOSCALE` only touches the gateway (the stateless interface tier).
+
 ## Teardown
 
 ```bash

@@ -54,7 +54,7 @@ deploy: ## Install the $(CACHE_TYPE) backend + the ws interface
 	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-ws ./charts/aeroncache-ws -f values/aeroncache-ws.yaml \
-	  $(WS_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-ws,image) $(ghcr_secret)
+	  $(WS_FLAGS) $(NEAR_FLAGS) $(AUTOSCALE_FLAGS) $(call ghcr_image,aeroncache-ws,image) $(ghcr_secret)
 
 undeploy: ## Uninstall the ws interface + backend (either backend)
 	$(HELM) uninstall -n $(NAMESPACE) aeroncache-ws --ignore-not-found

@@ -106,6 +106,34 @@ Confirm Prometheus discovered the pods with `make observability-prometheus`
 Add it to, or remove it from, an already-running pattern on its own with `make observability-up` /
 `make observability-down`; `make down` removes it too.
 
+## Autoscaling (optional)
+
+Put a **HorizontalPodAutoscaler** on the http interface — an opt-in deployment option like the near
+cache and observability. `AUTOSCALE=true` sets `autoscaling.enabled=true` on the interface chart, gives
+the pods the CPU/memory **requests** a CPU HPA needs to compute utilization against, and (via
+`make cluster-up`) installs **metrics-server**, which the HPA reads:
+
+```bash
+make up AUTOSCALE=true     # the http interface scales between 2 and 5 replicas at 60% CPU
+make verify-hpa            # drive load and watch the replica count climb
+```
+
+The bounds and target are tunable, and it composes with the other options:
+
+```bash
+make up AUTOSCALE=true HPA_MIN=2 HPA_MAX=8 HPA_CPU=50
+make up AUTOSCALE=true OBSERVABILITY=true    # watch the replica count on the Grafana dashboard
+```
+
+`make verify-hpa` (offered here because the interface speaks HTTP) seeds a cache and runs concurrent
+put/get load through the forwarded interface while printing `kubectl get hpa` every 15s: expect
+`TARGETS` to cross 60% and `REPLICAS` to rise. It is an operator aid, not a CI check — metrics lag
+~15–30s and replicas stay up through the HPA's scale-down stabilization window. Inspect the HPA directly
+any time with `kubectl get hpa -w -n aeroncache-patterns`.
+
+> The RAFT cluster / ephemeral **backend** is never autoscaled: its membership is fixed, so scaling it
+> would break consensus. `AUTOSCALE` only touches the stateless interface tier.
+
 ## Teardown
 
 ```bash

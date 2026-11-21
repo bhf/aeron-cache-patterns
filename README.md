@@ -49,6 +49,11 @@ any of them, so one convention covers every combination:
 - **`OBSERVABILITY`** — `false` (default) or `true` to also stand up the shared **Prometheus +
   Grafana** stack (`common/observability`) and provision that pattern's Grafana dashboard. The charts
   already expose metrics via pod annotations, so this just adds the collector + UI.
+- **`AUTOSCALE`** — `false` (default) or `true` to put a **HorizontalPodAutoscaler** on the pattern's
+  stateless interface tier (the http/ws/sse/gateway interfaces and the Next.js UI — never the
+  fixed-membership RAFT/ephemeral/monolith backends). It sets the CPU/memory requests the HPA needs and
+  installs metrics-server (`make cluster-up`). Tune with `HPA_MIN`/`HPA_MAX`/`HPA_CPU`; where the
+  interface speaks HTTP, `make verify-hpa` drives load and watches it scale.
 
 `CACHE_TYPE` and `NEAR_CACHE` are orthogonal, so all four combinations are just `make up` plus the
 variables:
@@ -61,8 +66,9 @@ variables:
 `OBSERVABILITY=true` layers onto any of those cells (e.g.
 `make up OBSERVABILITY=true CACHE_TYPE=ephemeral`), then `make observability-grafana` port-forwards
 Grafana to http://localhost:3000. When near caching is on, `make verify-near` proves it actually
-served a read (via each interface's near-cache metrics). See each pattern's **Near cache (optional)**
-and **Observability (optional)** sections.
+served a read (via each interface's near-cache metrics). `AUTOSCALE=true` layers on the same way (e.g.
+`make up AUTOSCALE=true OBSERVABILITY=true`) to add HPAs to the interface tier. See each pattern's
+**Near cache (optional)**, **Observability (optional)** and **Autoscaling (optional)** sections.
 
 ## Repository layout
 
@@ -72,8 +78,9 @@ Makefile              # top-level: list / delegate up|down|verify to a pattern /
 common/               # shared pieces every pattern reuses
   ghcr.mk             #   helm --set flags pointing images at the pinned GHCR release
   pattern.mk          #   shared make targets (up/down/verify/wait/status/logs/observability-*/...)
-  cluster.sh          #   cluster lifecycle: minikube (local) or kind (CI)
+  cluster.sh          #   cluster lifecycle: minikube (local) or kind (CI); + metrics-server for AUTOSCALE
   smoke.sh            #   reusable create/put/get smoke test
+  hpa-load.sh         #   HPA load generator for `make verify-hpa` (AUTOSCALE=true)
   observability/      #   shared Prometheus + Grafana chart (OBSERVABILITY=true)
 patterns/
   _template/          # scaffold for a new pattern (see scripts/new-pattern.sh)
