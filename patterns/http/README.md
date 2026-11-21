@@ -55,6 +55,33 @@ To use kind instead (as CI does): add `CLUSTER=kind`.
 `make verify` port-forwards `svc/aeroncache-http:7070` and runs a create/put/get round-trip against
 either backend. A healthy deployment ends with `SMOKE PASSED`.
 
+## Near cache (optional)
+
+The http interface can serve its reads from a **server-side near cache** — a warm local copy of a
+cache, kept in sync by a cluster subscription, so `GET`s resolve locally instead of round-tripping to
+the cluster. It is an opt-in deployment option, orthogonal to `CACHE_TYPE` (it composes with either
+backend), that sets `nearCacheEnabled=true` (`NEAR_CACHE_ENABLED`) on the interface:
+
+```bash
+make up NEAR_CACHE=true                       # clustered backend + near cache on
+make up NEAR_CACHE=true CACHE_TYPE=ephemeral  # ephemeral backend + near cache on
+make verify-near                              # prove the near cache actually served a read
+```
+
+`make verify-near` creates and writes a cache, primes the near cache for it
+(`POST /api/v1/near/cache/<id>`), waits until it is listed warm with a local item count, and then
+asserts the near-cache metric moved before reading the item back from the warm copy.
+
+**Confirming it is used.** The http interface publishes Micrometer metrics on its own `/prometheus`
+(port 7070); near caching adds `aeroncache_near_warm_caches{domain="cache"}` (and, for the streaming
+interfaces, the `aeroncache_near_hydrations_served_total` hit counter). The management API lists what
+is warm:
+
+```bash
+curl -s localhost:7070/api/v1/near/caches | jq .     # warm caches + local item counts
+curl -s localhost:7070/prometheus | grep near        # the near-cache gauges/counters
+```
+
 ## Teardown
 
 ```bash

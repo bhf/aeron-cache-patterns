@@ -80,6 +80,35 @@ and the UI (3000), checks the http interface's liveness/readiness, then:
 
 A healthy deployment ends with `FULL-STACK VERIFY PASSED` then `SMOKE PASSED`.
 
+## Near cache (optional)
+
+All three web interfaces (http, ws, sse) can serve reads/hydration from a **server-side near cache** —
+a warm local copy kept in sync by a cluster subscription. It is an opt-in deployment option, orthogonal
+to `CACHE_TYPE`, that sets `nearCacheEnabled=true` (`NEAR_CACHE_ENABLED`) on the http, ws and sse
+interfaces (each keeps its own independent near cache; the UI is unaffected):
+
+```bash
+make up NEAR_CACHE=true                       # clustered backend + near cache on
+make up NEAR_CACHE=true CACHE_TYPE=ephemeral  # ephemeral backend + near cache on
+make verify-near                              # prove the near cache actually served a read
+```
+
+`make verify-near` creates and writes one cache, then primes and checks **each** interface's own near
+cache in turn (http, ws and sse), asserting the `aeroncache_near_warm_caches` gauge rose on each
+interface's `/prometheus`. Priming and the metric are plain HTTP on each interface's port, so the check
+opens its own forwards to the ws (7071) and sse (7072) Services (the pattern's `make verify` only
+forwards http + the UI).
+
+**Confirming it is used.** Each web interface publishes near-cache metrics on its own `/prometheus`
+(http 7070, ws 7071, sse 7072): `aeroncache_near_warm_caches{domain="cache"}` and, on the streaming
+interfaces, the `aeroncache_near_hydrations_served_total` hit counter. The management API lists what is
+warm, and the UI has a **Near Cache** page that lists, primes and stops caches per gateway:
+
+```bash
+curl -s localhost:7070/api/v1/near/caches | jq .     # warm caches + local item counts (http)
+curl -s localhost:7070/prometheus | grep near        # the near-cache gauges/counters
+```
+
 ## Teardown
 
 ```bash

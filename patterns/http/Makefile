@@ -13,6 +13,10 @@ CACHE_TYPE    ?= clustered
 SMOKE_SERVICE := svc/aeroncache-http
 SMOKE_PORT    := 7070
 
+# Near-cache verify (make verify-near): warms a cache through the http reads and asserts the near
+# cache served them, by scraping the http interface's own /prometheus (Micrometer) near counters.
+NEAR_CMD      := bash verify-near.sh
+
 include ../../common/pattern.mk
 
 # --- Backend selection (CACHE_TYPE) -----------------------------------------
@@ -45,13 +49,13 @@ BACKEND_GHCR := $(call ghcr_image,aeroncache-cluster,image) \
 .PHONY: deploy undeploy
 
 deploy: ## Install the $(CACHE_TYPE) backend + the http interface
-	@echo "Deploying http pattern with CACHE_TYPE=$(CACHE_TYPE)"
+	@echo "Deploying http pattern with CACHE_TYPE=$(CACHE_TYPE) NEAR_CACHE=$(NEAR_CACHE)"
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  $(BACKEND_RELEASE) $(BACKEND_CHART) \
 	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-http ./charts/aeroncache-http -f values/aeroncache-http.yaml \
-	  $(HTTP_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)
+	  $(HTTP_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)
 
 undeploy: ## Uninstall the http interface + backend (either backend)
 	$(HELM) uninstall -n $(NAMESPACE) aeroncache-http --ignore-not-found

@@ -80,6 +80,34 @@ ws.addEventListener('open', () => {
 ws.addEventListener('message', (e) => console.log(e.data)); // commandResponse frames
 ```
 
+## Near cache (optional)
+
+The ws interface can serve **hydrating subscriptions** (a `subscribe` with `sendSnapshot`) from a
+**server-side near cache** — a warm local copy kept in sync by a cluster subscription, so hydration is
+served locally instead of asking the cluster for a per-subscriber snapshot. It is an opt-in deployment
+option, orthogonal to `CACHE_TYPE`, that sets `nearCacheEnabled=true` (`NEAR_CACHE_ENABLED`) on the
+interface:
+
+```bash
+make up NEAR_CACHE=true                       # clustered backend + near cache on
+make up NEAR_CACHE=true CACHE_TYPE=ephemeral  # ephemeral backend + near cache on
+make verify-near                              # prove the near cache actually served the interface
+```
+
+`make verify-near` writes a cache over the bidi WebSocket, primes the near cache for it
+(`POST /api/v1/near/cache/<id>`, served over HTTP on the same ws port), waits until it is listed warm
+with a local item count, asserts the near-cache metric moved, and reads the item back.
+
+**Confirming it is used.** The ws interface publishes Micrometer metrics on its own `/prometheus`
+(port 7071): `aeroncache_near_warm_caches{domain="cache"}` and the `aeroncache_near_hydrations_served_total`
+hit counter (a non-zero delta proves a hydration was served from the near cache, not the cluster). The
+management API lists what is warm:
+
+```bash
+curl -s localhost:7071/api/v1/near/caches | jq .     # warm caches + local item counts
+curl -s localhost:7071/prometheus | grep near        # the near-cache gauges/counters
+```
+
 ## Teardown
 
 ```bash

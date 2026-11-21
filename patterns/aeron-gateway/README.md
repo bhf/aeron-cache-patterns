@@ -79,6 +79,37 @@ A healthy deployment ends with `GATEWAY DATA-PATH OK` then `SMOKE PASSED`.
 > backend release, and is published from
 > [bhf/aeron-cache-embedded](https://github.com/bhf/aeron-cache-embedded/tree/main/samples/java/aeron-sample).
 
+## Near cache (optional)
+
+The gateway can serve **hydrating subscriptions** from a **server-side near cache** — a warm local copy
+kept in sync by a single cluster subscription, so hydration (and synthetic patches for patch-mode
+subscribers) is served locally instead of asking the cluster for a per-subscriber snapshot. It is an
+opt-in deployment option, orthogonal to `CACHE_TYPE`, that sets `nearCacheEnabled=true`
+(`NEAR_CACHE_ENABLED`) on the gateway:
+
+```bash
+make up NEAR_CACHE=true                       # clustered backend + near cache on
+make up NEAR_CACHE=true CACHE_TYPE=ephemeral  # ephemeral backend + near cache on
+make verify-near                              # prove the gateway near cache is active and metered
+```
+
+Unlike the web gateways, the transport gateway has no HTTP data path, but it exposes the **same near
+cache management API** on its HTTP health server (7073). `make verify-near` primes the near cache there
+(`POST :7073/api/v1/near/cache/<id>`) and asserts the gateway's near-cache metric rose.
+
+**Confirming it is used.** The gateway's near-cache metrics are Aeron media-driver counters (type
+2100) that the co-located clustertools sidecar publishes in Prometheus format on **port 7080** (not
+exposed via the Service, so port-forward the pod): `aeron_gateway_near_warm_caches{domain="cache"}` and
+the `aeron_gateway_near_hydrations_served_total` hit counter. The management API lists what is warm on
+the health server:
+
+```bash
+curl -s localhost:7073/api/v1/near/caches | jq .                       # warm caches + item counts
+POD=$(kubectl get pod -n aeroncache-patterns -l app.kubernetes.io/name=aeroncache-gateway -o name | head -1)
+kubectl port-forward -n aeroncache-patterns "$POD" 7080:7080 &
+curl -s localhost:7080/prometheus | grep near                          # the near-cache counters
+```
+
 ## Teardown
 
 ```bash

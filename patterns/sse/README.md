@@ -76,6 +76,34 @@ curl -X POST http://localhost:7070/api/v1/cache -H 'Content-Type: application/js
 curl -X POST http://localhost:7070/api/v1/cache/demo -H 'Content-Type: application/json' -d '{"key":"k","value":"v"}'
 ```
 
+## Near cache (optional)
+
+The sse interface can serve **hydrating subscriptions** (snapshot-on-subscribe) from a **server-side
+near cache** — a warm local copy kept in sync by a cluster subscription, so hydration is served locally
+instead of asking the cluster for a per-subscriber snapshot. It is an opt-in deployment option,
+orthogonal to `CACHE_TYPE`, that sets `nearCacheEnabled=true` (`NEAR_CACHE_ENABLED`) on both the sse and
+the http-writer interfaces:
+
+```bash
+make up NEAR_CACHE=true                       # clustered backend + near cache on
+make up NEAR_CACHE=true CACHE_TYPE=ephemeral  # ephemeral backend + near cache on
+make verify-near                              # prove the near cache actually served a hydration
+```
+
+`make verify-near` writes an item via http, primes the sse near cache for that cache
+(`POST /api/v1/near/cache/<id>`), waits until it is listed warm with a local item count, asserts the
+near-cache metric moved, and reads the snapshot back over an SSE hydrate subscription.
+
+**Confirming it is used.** The sse interface publishes Micrometer metrics on its own `/prometheus`
+(port 7072): `aeroncache_near_warm_caches{domain="cache"}` and the `aeroncache_near_hydrations_served_total`
+hit counter (a non-zero delta proves a hydration was served from the near cache, not the cluster). The
+management API lists what is warm:
+
+```bash
+curl -s localhost:7072/api/v1/near/caches | jq .     # warm caches + local item counts
+curl -s localhost:7072/prometheus | grep near        # the near-cache gauges/counters
+```
+
 ## Teardown
 
 ```bash

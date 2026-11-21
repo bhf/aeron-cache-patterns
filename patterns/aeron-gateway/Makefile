@@ -23,6 +23,11 @@ SMOKE_PORT    := 7073
 SMOKE_MODE    := command
 SMOKE_CMD     := bash verify-gateway.sh
 
+# Near-cache verify (make verify-near): runs the aeron-sample exerciser Job as a cold then warm
+# hydrating subscriber and asserts the gateway's near hit counter on the clustertools /prometheus
+# (aeron_gateway_near_hydrations_served_total) moved — proving the gateway served from the near cache.
+NEAR_CMD      := bash verify-near.sh
+
 include ../../common/pattern.mk
 
 # Exerciser: verify-gateway.sh runs the published aeron-sample (an actual AeronGatewayClient) as a
@@ -63,13 +68,13 @@ GATEWAY_GHCR := $(call ghcr_image,aeroncache-gateway,image) \
 .PHONY: deploy undeploy
 
 deploy: ## Install the $(CACHE_TYPE) backend + the aeron transport gateway
-	@echo "Deploying aeron-gateway pattern with CACHE_TYPE=$(CACHE_TYPE)"
+	@echo "Deploying aeron-gateway pattern with CACHE_TYPE=$(CACHE_TYPE) NEAR_CACHE=$(NEAR_CACHE)"
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  $(BACKEND_RELEASE) $(BACKEND_CHART) \
 	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-gateway ./charts/aeroncache-gateway -f values/aeroncache-gateway.yaml \
-	  $(GATEWAY_FLAGS) $(GATEWAY_GHCR) $(ghcr_secret)
+	  $(GATEWAY_FLAGS) $(NEAR_FLAGS) $(GATEWAY_GHCR) $(ghcr_secret)
 
 undeploy: ## Uninstall the gateway + backend
 	$(HELM) uninstall -n $(NAMESPACE) aeroncache-gateway --ignore-not-found

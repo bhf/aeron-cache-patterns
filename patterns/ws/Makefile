@@ -17,6 +17,10 @@ SMOKE_PORT    := 7071
 SMOKE_MODE    := command
 SMOKE_CMD     := node verify-bidi.mjs
 
+# Near-cache verify (make verify-near): a cold then warm hydrating bidi subscription, asserting the
+# ws interface's own /prometheus near hit counter (aeroncache_near_hydrations_served_total) moved.
+NEAR_CMD      := node verify-near.mjs
+
 include ../../common/pattern.mk
 
 # --- Backend selection (CACHE_TYPE) -----------------------------------------
@@ -44,13 +48,13 @@ BACKEND_GHCR := $(call ghcr_image,aeroncache-cluster,image) \
 .PHONY: deploy undeploy
 
 deploy: ## Install the $(CACHE_TYPE) backend + the ws interface
-	@echo "Deploying ws pattern with CACHE_TYPE=$(CACHE_TYPE)"
+	@echo "Deploying ws pattern with CACHE_TYPE=$(CACHE_TYPE) NEAR_CACHE=$(NEAR_CACHE)"
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  $(BACKEND_RELEASE) $(BACKEND_CHART) \
 	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-ws ./charts/aeroncache-ws -f values/aeroncache-ws.yaml \
-	  $(WS_FLAGS) $(call ghcr_image,aeroncache-ws,image) $(ghcr_secret)
+	  $(WS_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-ws,image) $(ghcr_secret)
 
 undeploy: ## Uninstall the ws interface + backend (either backend)
 	$(HELM) uninstall -n $(NAMESPACE) aeroncache-ws --ignore-not-found

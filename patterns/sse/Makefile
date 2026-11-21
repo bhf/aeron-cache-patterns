@@ -19,6 +19,10 @@ SMOKE_PORT2    := 7070
 SMOKE_MODE     := command
 SMOKE_CMD      := SSE_BASE="$$BASE" HTTP_BASE="$$BASE2" bash verify-sse.sh
 
+# Near-cache verify (make verify-near): write via http, then a cold then warm hydrating SSE
+# subscription, asserting the sse interface's own /prometheus near hit counter moved.
+NEAR_CMD       := SSE_BASE="$$BASE" HTTP_BASE="$$BASE2" bash verify-near.sh
+
 include ../../common/pattern.mk
 
 # --- Backend selection (CACHE_TYPE) -----------------------------------------
@@ -47,16 +51,16 @@ BACKEND_GHCR := $(call ghcr_image,aeroncache-cluster,image) \
 .PHONY: deploy undeploy
 
 deploy: ## Install the $(CACHE_TYPE) backend + the sse interface (+ http writer)
-	@echo "Deploying sse pattern with CACHE_TYPE=$(CACHE_TYPE)"
+	@echo "Deploying sse pattern with CACHE_TYPE=$(CACHE_TYPE) NEAR_CACHE=$(NEAR_CACHE)"
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  $(BACKEND_RELEASE) $(BACKEND_CHART) \
 	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-sse ./charts/aeroncache-sse -f values/aeroncache-sse.yaml \
-	  $(IFACE_FLAGS) $(call ghcr_image,aeroncache-sse,image) $(ghcr_secret)
+	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-sse,image) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-http ./charts/aeroncache-http -f values/aeroncache-http.yaml \
-	  $(IFACE_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)
+	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)
 
 undeploy: ## Uninstall the sse + http interfaces + backend
 	$(HELM) uninstall -n $(NAMESPACE) aeroncache-sse --ignore-not-found
