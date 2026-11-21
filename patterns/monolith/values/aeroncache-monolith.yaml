@@ -10,3 +10,16 @@ service:
 
 # Single-node RAFT cluster embedded in the one pod (the chart default; stated here for clarity).
 cacheMode: "RAFT"
+
+# Make the monolith scrapeable by the optional observability stack (make up OBSERVABILITY=true). The
+# chart defaults to no annotations; the monolith runs the ClusterTools HTTP app in-process on 7080
+# (media-driver + cache counters at /prometheus) and the embedded HTTP gateway on 7070 (its Micrometer
+# app metrics at /prometheus), so point the two scrape annotation sets the observability chart's
+# Prometheus looks for at those ports.
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "7080"
+  prometheus.io/path: "/prometheus"
+  aeroncache.io/app-metrics-scrape: "true"
+  aeroncache.io/app-metrics-port: "7070"
+  aeroncache.io/app-metrics-path: "/prometheus"

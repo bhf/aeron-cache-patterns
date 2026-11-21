@@ -49,13 +49,37 @@ ifeq ($(filter $(NEAR_CACHE),true false),)
 endif
 NEAR_FLAGS = $(if $(filter true,$(NEAR_CACHE)),--set nearCacheEnabled=true)
 
+# Observability (OBSERVABILITY): opt into the shared Prometheus + Grafana stack for this pattern. Like
+# NEAR_CACHE it is a deployment OPTION on the normal lifecycle, not a separate flow — `make up
+# OBSERVABILITY=true` also installs common/observability (Prometheus auto-discovers the pattern's pods
+# via the prometheus.io/scrape + aeroncache.io/app-metrics-scrape annotations the charts already carry)
+# and provisions this pattern's Grafana dashboard. It composes with CACHE_TYPE and NEAR_CACHE:
+#   make up OBSERVABILITY=true                      # pattern + Prometheus/Grafana
+#   make up OBSERVABILITY=true NEAR_CACHE=true      # + near cache (its gauges show up on the dashboard)
+# The stack can also be added to / removed from an already-running pattern on its own:
+#   make observability-up / make observability-down
+#   make observability-grafana   # port-forward Grafana to http://localhost:3000
+# `make down` always removes the stack too (safe no-op if it was never installed).
+OBSERVABILITY ?= false
+ifeq ($(filter $(OBSERVABILITY),true false),)
+  $(error OBSERVABILITY must be 'true' or 'false' (got '$(OBSERVABILITY)'))
+endif
+# Conditionally made a prerequisite of up/redeploy (empty, i.e. not a prereq, when disabled).
+OBS_PREREQ    = $(if $(filter true,$(OBSERVABILITY)),observability-up)
+OBS_CHART     := $(ROOT_DIR)/common/observability
+# Pattern-owned Grafana dashboard JSON, injected into the shared chart under this pattern's name.
+# Override OBS_DASHBOARD to point elsewhere; if the file is absent the stack installs with no dashboard.
+OBS_DASHBOARD ?= $(CURDIR)/dashboards/$(PATTERN).json
+OBS_DASHBOARD_FLAG = $(if $(wildcard $(OBS_DASHBOARD)),--set-file grafana.dashboards.$(PATTERN)=$(OBS_DASHBOARD))
+
 # Exported so common/smoke.sh picks them up without per-pattern wiring.
 export NAMESPACE SMOKE_SERVICE SMOKE_PORT LOCAL_PORT CACHE_ID SMOKE_MODE SMOKE_CMD \
        SMOKE_SERVICE2 SMOKE_PORT2 LOCAL_PORT2
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down deploy undeploy redeploy cluster-up cluster-down wait verify status logs
+.PHONY: help up down deploy undeploy redeploy cluster-up cluster-down wait verify status logs \
+        observability-up observability-down observability-grafana observability-prometheus
 
 help: ## Show this pattern's targets
 	@echo "Pattern: $(or $(PATTERN),$(notdir $(CURDIR)))   (cluster: $(CLUSTER))"
@@ -72,13 +96,14 @@ cluster-down: ## Delete the local cluster
 	@CLUSTER=$(CLUSTER) CLUSTER_NAME=$(CLUSTER_NAME) \
 	  bash $(COMMON_DIR)/cluster.sh cluster_down
 
-up: cluster-up deploy wait ## Create the cluster, deploy the pattern, wait for Ready
+up: cluster-up deploy $(OBS_PREREQ) wait ## Create the cluster, deploy the pattern, wait for Ready (OBSERVABILITY=true adds Prometheus+Grafana)
 	@echo "✔ '$(or $(PATTERN),pattern)' is up in namespace '$(NAMESPACE)'. Run: make verify"
+	$(if $(filter true,$(OBSERVABILITY)),@echo "  observability on — run: make observability-grafana  ->  http://localhost:3000")
 
-down: undeploy ## Uninstall the pattern (use 'make cluster-down' to also delete the cluster)
+down: undeploy observability-down ## Uninstall the pattern + observability stack (use 'make cluster-down' to also delete the cluster)
 	@echo "✔ '$(or $(PATTERN),pattern)' uninstalled from '$(NAMESPACE)'."
 
-redeploy: undeploy deploy wait ## Reinstall the pattern without recreating the cluster
+redeploy: undeploy deploy $(OBS_PREREQ) wait ## Reinstall the pattern without recreating the cluster
 
 # Near-cache targets, defined only for patterns that support near caching — i.e. those that set a
 # NEAR_CMD (a verify-near script that warms a cache and asserts the near-cache metrics moved) before
@@ -115,3 +140,24 @@ logs: ## Tail recent logs from the namespace
 	@$(KUBECTL) logs -n $(NAMESPACE) --all-containers --prefix --tail=100 \
 	  -l app.kubernetes.io/part-of=aeroncache 2>/dev/null \
 	  || $(KUBECTL) logs -n $(NAMESPACE) --all-containers --prefix --tail=100 --selector=''
+
+# --- Observability (Prometheus + Grafana) -----------------------------------
+# The shared chart lives in common/observability and is the same for every pattern; only the Grafana
+# dashboard differs (patterns/<p>/dashboards/<p>.json), injected via --set-file. See the OBSERVABILITY
+# notes above. `make up OBSERVABILITY=true` runs observability-up as part of the lifecycle; these
+# targets also let you add/remove or reach the stack on their own.
+observability-up: ## Install the Prometheus+Grafana stack + this pattern's dashboard (or: up OBSERVABILITY=true)
+	@echo "Installing observability stack (scrape ns: $(NAMESPACE), dashboard: $(if $(OBS_DASHBOARD_FLAG),$(notdir $(OBS_DASHBOARD)),<none>))"
+	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
+	  aeroncache-observability $(OBS_CHART) \
+	  --set prometheus.scrapeNamespaces={$(NAMESPACE)} \
+	  $(OBS_DASHBOARD_FLAG)
+
+observability-down: ## Uninstall the Prometheus+Grafana stack (safe if it was never installed)
+	@$(HELM) uninstall -n $(NAMESPACE) aeroncache-observability --ignore-not-found
+
+observability-grafana: ## Port-forward Grafana to http://localhost:3000 (Ctrl+C to stop)
+	$(KUBECTL) port-forward -n $(NAMESPACE) svc/aeroncache-grafana 3000:3000
+
+observability-prometheus: ## Port-forward Prometheus to http://localhost:9090/targets (Ctrl+C to stop)
+	$(KUBECTL) port-forward -n $(NAMESPACE) svc/aeroncache-prometheus 9090:9090

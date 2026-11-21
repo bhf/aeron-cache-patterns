@@ -1,0 +1,21 @@
+Observability stack installed into namespace {{ .Release.Namespace }}.
+
+Prometheus : {{ include "aeroncache-observability.prometheus.fullname" . }} (service type {{ .Values.prometheus.service.type }}, port {{ .Values.prometheus.service.port }})
+Grafana    : {{ include "aeroncache-observability.grafana.fullname" . }} (service type {{ .Values.grafana.service.type }}, port {{ .Values.grafana.service.port }})
+
+Scrape namespaces: {{ join ", " .Values.prometheus.scrapeNamespaces }}
+Dashboards provisioned (folder "Aeron Cache Patterns"):
+{{- range $name, $json := .Values.grafana.dashboards }}
+  - {{ $name }}
+{{- else }}
+  (none supplied — pass one with --set-file grafana.dashboards.<name>=<file.json>)
+{{- end }}
+
+Open Grafana (from the pattern directory):
+  make observability-grafana      ->  http://localhost:{{ .Values.grafana.service.port }}
+
+Check scrape discovery in Prometheus:
+  make observability-prometheus   ->  http://localhost:{{ .Values.prometheus.service.port }}/targets
+
+The pattern's pods are discovered automatically via their prometheus.io/scrape and
+aeroncache.io/app-metrics-scrape annotations, so the dashboard populates once the pattern is up.

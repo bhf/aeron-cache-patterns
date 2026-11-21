@@ -39,10 +39,26 @@ To use kind instead (as CI does): `make up CLUSTER=kind`.
 `make verify` port-forwards the HTTP interface and runs a create/put/get round-trip against
 the live deployment. A healthy pattern ends with `SMOKE PASSED`.
 
+## Observability (optional)
+
+A **Prometheus + Grafana** stack is available to every pattern as an opt-in deployment option (the
+charts already expose metrics via pod annotations):
+
+```bash
+make up OBSERVABILITY=true     # deploy the pattern + Prometheus + Grafana
+make observability-grafana     # port-forward Grafana -> http://localhost:3000
+```
+
+`OBSERVABILITY=true` installs the shared `../../common/observability` chart and provisions this
+pattern's dashboard from `dashboards/__PATTERN__.json` (create it — a per-pattern starter over the
+metrics this pattern exposes; if it is absent the stack still installs, just with no dashboard).
+`make down` removes the stack too; `make observability-up` / `observability-down` toggle it on a
+running pattern.
+
 ## Teardown
 
 ```bash
-make down            # uninstall the pattern
+make down            # uninstall the pattern (and the observability stack, if installed)
 make cluster-down    # (optional) delete the whole cluster
 ```
 

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aeroncache-observability
+description: Optional Prometheus + Grafana stack for the aeron-cache-patterns. Auto-discovers the metrics every pattern's charts already expose (clustertools media-driver + cache counters, and the web gateways' Micrometer metrics) and ships a per-pattern Grafana dashboard.
+type: application
+version: 0.0.1
+appVersion: "0.0.1"

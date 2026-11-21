@@ -38,24 +38,31 @@ Local runs use **minikube** by default. CI uses **kind**; you can too with `make
 
 ## Common options
 
-Two cross-cutting variables compose with the interface patterns (http, ws, sse, aeron-gateway,
-full-stack). Both are deployment options on the normal `make up` lifecycle — there is no separate
-target for either, so one convention covers every combination:
+Cross-cutting variables compose with the interface patterns (http, ws, sse, aeron-gateway,
+full-stack). They are deployment options on the normal `make up` lifecycle — no separate target for
+any of them, so one convention covers every combination:
 
 - **`CACHE_TYPE`** — `clustered` (default, 3-node RAFT) or `ephemeral` (single SINGLE-mode node).
 - **`NEAR_CACHE`** — `false` (default) or `true` to enable the server-side **near cache** on the
   pattern's interface(s): a warm local copy that serves reads/hydration instead of round-tripping to
   the cluster.
+- **`OBSERVABILITY`** — `false` (default) or `true` to also stand up the shared **Prometheus +
+  Grafana** stack (`common/observability`) and provision that pattern's Grafana dashboard. The charts
+  already expose metrics via pod annotations, so this just adds the collector + UI.
 
-They are orthogonal, so all four combinations are just `make up` plus the variables:
+`CACHE_TYPE` and `NEAR_CACHE` are orthogonal, so all four combinations are just `make up` plus the
+variables:
 
 | | No near cache | Near cache |
 |---|---|---|
 | **Clustered** (default) | `make up` | `make up NEAR_CACHE=true` |
 | **Ephemeral** | `make up CACHE_TYPE=ephemeral` | `make up NEAR_CACHE=true CACHE_TYPE=ephemeral` |
 
-When near caching is on, `make verify-near` proves it actually served a read (via each interface's
-near-cache metrics). See each pattern's **Near cache (optional)** section.
+`OBSERVABILITY=true` layers onto any of those cells (e.g.
+`make up OBSERVABILITY=true CACHE_TYPE=ephemeral`), then `make observability-grafana` port-forwards
+Grafana to http://localhost:3000. When near caching is on, `make verify-near` proves it actually
+served a read (via each interface's near-cache metrics). See each pattern's **Near cache (optional)**
+and **Observability (optional)** sections.
 
 ## Repository layout
 
@@ -64,9 +71,10 @@ versions.env          # the single pinned Aeron Cache release every pattern + CI
 Makefile              # top-level: list / delegate up|down|verify to a pattern / doctor
 common/               # shared pieces every pattern reuses
   ghcr.mk             #   helm --set flags pointing images at the pinned GHCR release
-  pattern.mk          #   shared make targets (up/down/verify/wait/status/logs/...)
+  pattern.mk          #   shared make targets (up/down/verify/wait/status/logs/observability-*/...)
   cluster.sh          #   cluster lifecycle: minikube (local) or kind (CI)
   smoke.sh            #   reusable create/put/get smoke test
+  observability/      #   shared Prometheus + Grafana chart (OBSERVABILITY=true)
 patterns/
   _template/          # scaffold for a new pattern (see scripts/new-pattern.sh)
   <pattern>/
@@ -74,6 +82,7 @@ patterns/
     meta.yaml         #   structured metadata for the docs-site index
     Makefile          #   sets variables + defines deploy/undeploy; includes common/pattern.mk
     values/           #   per-chart values overlays
+    dashboards/       #   per-pattern Grafana dashboard JSON (provisioned by OBSERVABILITY=true)
     charts/           #   vendored upstream charts + VENDOR.lock (pinned provenance)
 docs-site/            # Astro + Tailwind docs site (run locally; deploy later)
 scripts/

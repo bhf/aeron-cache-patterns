@@ -110,6 +110,30 @@ kubectl port-forward -n aeroncache-patterns "$POD" 7080:7080 &
 curl -s localhost:7080/prometheus | grep near                          # the near-cache counters
 ```
 
+## Observability (optional)
+
+Add a **Prometheus + Grafana** stack that scrapes this pattern and ships a Grafana dashboard for it.
+Like the near cache, it is an opt-in deployment option rather than a separate flow — the metrics are
+already exposed (the pods carry the `prometheus.io/scrape` and `aeroncache.io/app-metrics-scrape`
+annotations by default), so turning it on just adds the stack that collects and visualises them:
+
+```bash
+make up OBSERVABILITY=true        # deploy the pattern + Prometheus + Grafana
+make observability-grafana        # port-forward Grafana -> http://localhost:3000
+```
+
+`OBSERVABILITY=true` installs the shared chart (`../../common/observability`) into the namespace and
+provisions this pattern's dashboard (`dashboards/aeron-gateway.json`, Grafana folder **Aeron Cache
+Patterns**). It composes with the other options, e.g.
+`make up OBSERVABILITY=true CACHE_TYPE=ephemeral`.
+
+The starter dashboard's panels cover scrape health, JVM heap/CPU, connected sessions, gateway requests by type, stream-update throughput and cache request rates; specialise `dashboards/aeron-gateway.json` to taste.
+Confirm Prometheus discovered the pods with `make observability-prometheus`
+(→ http://localhost:9090/targets).
+
+Add it to, or remove it from, an already-running pattern on its own with `make observability-up` /
+`make observability-down`; `make down` removes it too.
+
 ## Teardown
 
 ```bash
