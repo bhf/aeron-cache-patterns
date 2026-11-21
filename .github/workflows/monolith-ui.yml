@@ -1,0 +1,26 @@
+name: Monolith + UI
+
+# Runs only when the monolith-ui pattern, the shared pieces it depends on, or the reusable
+# workflow change. The real logic lives in _pattern-ci.yml.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/monolith-ui/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/monolith-ui.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/monolith-ui/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/monolith-ui.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  monolith-ui:
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: monolith-ui

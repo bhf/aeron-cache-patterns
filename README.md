@@ -3,6 +3,7 @@
 ![img.png](https://raw.githubusercontent.com/bhf/aeron-cache/refs/heads/main/docs/images/header.png)
 
 [![Monolith](https://github.com/bhf/aeron-cache-patterns/actions/workflows/monolith.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/monolith.yml)
+[![Monolith + UI](https://github.com/bhf/aeron-cache-patterns/actions/workflows/monolith-ui.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/monolith-ui.yml)
 [![HTTP interface](https://github.com/bhf/aeron-cache-patterns/actions/workflows/http.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/http.yml)
 [![WebSocket interface](https://github.com/bhf/aeron-cache-patterns/actions/workflows/ws.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/ws.yml)
 [![SSE interface](https://github.com/bhf/aeron-cache-patterns/actions/workflows/sse.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/sse.yml)

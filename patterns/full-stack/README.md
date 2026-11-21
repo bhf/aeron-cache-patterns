@@ -5,8 +5,9 @@
 ## Overview
 
 This pattern deploys an Aeron Cache **backend** together with the **http**, **ws** and **sse**
-interfaces and the **Next.js UI** (`aeroncache-ui-nextjs`) — the full front-to-back web stack, and
-the only pattern that includes the UI (which consumes http + ws + sse together).
+interfaces and the **Next.js UI** (`aeroncache-ui-nextjs`) — the full front-to-back web stack, with
+the UI driving all three interfaces together. For the UI in front of the single-pod monolith
+instead, see the [monolith-ui](../monolith-ui/README.md) pattern.
 
 `CACHE_TYPE` picks the backend — **`clustered`** (3-node RAFT, default) or **`ephemeral`**
 (single-node SINGLE). All three interfaces are wired to the chosen backend; the UI addresses the

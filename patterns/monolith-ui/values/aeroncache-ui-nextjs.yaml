@@ -1,0 +1,45 @@
+# Overlay for the Next.js UI, pointed at the monolith backend. Image (ghcr.io/bhf/aeroncache-ui)
+# comes from the Makefile via ghcr_image; the Makefile also sets `namespace` so the UI ConfigMap
+# lands in this namespace.
+#
+# Endpoints — the one real difference from the full-stack pattern:
+#   * api — fetched SERVER-SIDE from the UI pod, so it uses an in-cluster Service DNS name. Here that
+#     is the monolith Service (the monolith serves the HTTP API on 7070), not the split
+#     `aeroncache-http` interface. This is exactly the override the UI chart documents for the
+#     monolith.
+#   * ws / sse — opened by the BROWSER, so they stay on localhost: you port-forward the monolith's
+#     ws (7071) and sse (7072) ports, which the monolith exposes on the same numbers the split
+#     interfaces use.
+endpoints:
+  api: "http://aeroncache-monolith:7070/api/v1"
+  ws: "ws:localhost:7071"
+  sse: "http://localhost:7072"
+  jaeger: "http://jaeger:16686"
+  prometheus: "http://prometheus:9090"
+
+# The UI Service is left at its default LoadBalancer type on purpose: the chart hardcodes
+# `externalTrafficPolicy: Local`, which Kubernetes rejects on a ClusterIP Service. On kind/minikube a
+# LoadBalancer gets no external IP, but `make verify` and browser access go via `kubectl port-forward`
+# anyway, which works regardless of Service type.
+
+# Relaxed probes: the UI's `/` is server-side rendered and fetches the cache API, so it can be slow to
+# respond while the monolith is still starting its embedded cluster and media driver. The chart's
+# default probes (5s timeout, 5 failures) are tight enough to liveness-kill the UI into a crash loop
+# before the backend settles. These give it room without masking a genuinely dead UI. (This is a light
+# two-pod pattern, so it does not need the very generous full-stack timings.)
+livenessProbe:
+  httpGet:
+    path: /
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 10
+  failureThreshold: 10
+readinessProbe:
+  httpGet:
+    path: /
+    port: 3000
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 20

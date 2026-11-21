@@ -1,0 +1,12 @@
+# Overlay on charts/aeroncache-monolith/values.yaml — only the differences for running this
+# pattern locally. Image repository/tag/pullPolicy are set from versions.env via the Makefile
+# (ghcr_image), so they are deliberately not pinned here.
+#
+# Same backend overlay as the standalone `monolith` pattern: the UI reaches the monolith's HTTP API
+# over in-cluster Service DNS (server-side) and the browser reaches ws/sse via port-forward, so a
+# plain ClusterIP Service is all the monolith needs.
+service:
+  type: ClusterIP
+
+# Single-node RAFT cluster embedded in the one pod (the chart default; stated here for clarity).
+cacheMode: "RAFT"
