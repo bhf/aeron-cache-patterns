@@ -20,6 +20,10 @@ SMOKE_PORT2    := 3000
 SMOKE_MODE     := command
 SMOKE_CMD      := bash verify-fullstack.sh
 
+# Near-cache verify (make verify-near): warms one cache and asserts each of the three web interfaces'
+# independent near caches (http, ws, sse) went warm, via each interface's own /prometheus near gauge.
+NEAR_CMD       := bash verify-near.sh
+
 include ../../common/pattern.mk
 
 # --- Backend selection (CACHE_TYPE) -----------------------------------------
@@ -49,19 +53,19 @@ BACKEND_GHCR := $(call ghcr_image,aeroncache-cluster,image) \
 .PHONY: deploy undeploy
 
 deploy: ## Install the $(CACHE_TYPE) backend + http/ws/sse + UI
-	@echo "Deploying full-stack pattern with CACHE_TYPE=$(CACHE_TYPE)"
+	@echo "Deploying full-stack pattern with CACHE_TYPE=$(CACHE_TYPE) NEAR_CACHE=$(NEAR_CACHE)"
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  $(BACKEND_RELEASE) $(BACKEND_CHART) \
 	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-http ./charts/aeroncache-http -f values/aeroncache-http.yaml \
-	  $(IFACE_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)
+	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-ws ./charts/aeroncache-ws -f values/aeroncache-ws.yaml \
-	  $(IFACE_FLAGS) $(call ghcr_image,aeroncache-ws,image) $(ghcr_secret)
+	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-ws,image) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-sse ./charts/aeroncache-sse -f values/aeroncache-sse.yaml \
-	  $(IFACE_FLAGS) $(call ghcr_image,aeroncache-sse,image) $(ghcr_secret)
+	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-sse,image) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-ui-nextjs ./charts/aeroncache-ui-nextjs -f values/aeroncache-ui-nextjs.yaml \
 	  --set namespace=$(NAMESPACE) \

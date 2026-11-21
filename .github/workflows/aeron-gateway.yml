@@ -25,7 +25,9 @@ jobs:
       fail-fast: false
       matrix:
         cache-type: [clustered, ephemeral]
+        near-cache: ["false", "true"]
     uses: ./.github/workflows/_pattern-ci.yml
     with:
       pattern: aeron-gateway
       cache-type: ${{ matrix.cache-type }}
+      near-cache: ${{ matrix.near-cache }}

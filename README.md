@@ -35,6 +35,27 @@ Or `cd patterns/monolith && make up && make verify`.
 
 Local runs use **minikube** by default. CI uses **kind**; you can too with `make up CLUSTER=kind`.
 
+## Common options
+
+Two cross-cutting variables compose with the interface patterns (http, ws, sse, aeron-gateway,
+full-stack). Both are deployment options on the normal `make up` lifecycle — there is no separate
+target for either, so one convention covers every combination:
+
+- **`CACHE_TYPE`** — `clustered` (default, 3-node RAFT) or `ephemeral` (single SINGLE-mode node).
+- **`NEAR_CACHE`** — `false` (default) or `true` to enable the server-side **near cache** on the
+  pattern's interface(s): a warm local copy that serves reads/hydration instead of round-tripping to
+  the cluster.
+
+They are orthogonal, so all four combinations are just `make up` plus the variables:
+
+| | No near cache | Near cache |
+|---|---|---|
+| **Clustered** (default) | `make up` | `make up NEAR_CACHE=true` |
+| **Ephemeral** | `make up CACHE_TYPE=ephemeral` | `make up NEAR_CACHE=true CACHE_TYPE=ephemeral` |
+
+When near caching is on, `make verify-near` proves it actually served a read (via each interface's
+near-cache metrics). See each pattern's **Near cache (optional)** section.
+
 ## Repository layout
 
 ```

@@ -20,6 +20,11 @@ on:
         required: false
         type: string
         default: "clustered"
+      near-cache:
+        description: "'true' deploys with the near cache enabled and runs `make verify-near` after the smoke test"
+        required: false
+        type: string
+        default: "false"
       wait-timeout:
         description: Timeout for `kubectl wait` (e.g. 300s)
         required: false
@@ -28,7 +33,7 @@ on:
 
 jobs:
   test:
-    name: ${{ inputs.pattern }} (${{ inputs.cache-type }})
+    name: ${{ inputs.pattern }} (${{ inputs.cache-type }}${{ inputs.near-cache == 'true' && ', near' || '' }})
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -63,6 +68,7 @@ jobs:
           CLUSTER_NAME: aeroncache-patterns
           GHCR_PULL_POLICY: Always
           CACHE_TYPE: ${{ inputs.cache-type }}
+          NEAR_CACHE: ${{ inputs.near-cache }}
         run: make deploy
 
       - name: Wait for Ready
@@ -72,6 +78,11 @@ jobs:
       - name: Verify (smoke test)
         working-directory: patterns/${{ inputs.pattern }}
         run: make verify
+
+      - name: Verify near cache
+        if: inputs.near-cache == 'true'
+        working-directory: patterns/${{ inputs.pattern }}
+        run: make verify-near
 
       - name: Debug on failure
         if: failure()
