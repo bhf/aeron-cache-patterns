@@ -110,6 +110,28 @@ Confirm Prometheus discovered the pods with `make observability-prometheus`
 Add it to, or remove it from, an already-running pattern on its own with `make observability-up` /
 `make observability-down`; `make down` removes it too.
 
+## Autoscaling (optional)
+
+Put a **HorizontalPodAutoscaler** on the **Next.js UI** — an opt-in deployment option like observability.
+`AUTOSCALE=true` sets `autoscaling.enabled=true` on the UI chart (a Deployment), gives its pods the
+CPU/memory **requests** a CPU HPA needs, and (via `make cluster-up`) installs **metrics-server**:
+
+```bash
+make up AUTOSCALE=true                        # the UI scales between 2 and 5 replicas at 60% CPU
+make up AUTOSCALE=true HPA_MIN=2 HPA_MAX=8 HPA_CPU=50   # tunable; composes with OBSERVABILITY
+```
+
+Only the UI is autoscaled — the **monolith** is a single self-contained pod (an embedded cluster plus the
+interfaces), so its membership is fixed and it is never scaled. There is no `make verify-hpa` helper here;
+drive UI traffic and watch the autoscaler react:
+
+```bash
+kubectl port-forward -n aeroncache-patterns svc/aeroncache-ui-nextjs 3000:3000 &   # then load http://localhost:3000
+kubectl get hpa -w -n aeroncache-patterns     # TARGETS crosses 60% -> REPLICAS rises (metrics lag ~15-30s)
+```
+
+With `OBSERVABILITY=true` the replica count also shows up on the Grafana dashboard.
+
 ## Teardown
 
 ```bash

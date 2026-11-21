@@ -55,6 +55,22 @@ metrics this pattern exposes; if it is absent the stack still installs, just wit
 `make down` removes the stack too; `make observability-up` / `observability-down` toggle it on a
 running pattern.
 
+## Autoscaling (optional)
+
+If this pattern has a **stateless interface tier** (an http/ws/sse/gateway interface or the Next.js UI),
+it can carry a **HorizontalPodAutoscaler** as an opt-in deployment option. Add `$(AUTOSCALE_FLAGS)` to
+each interface chart's `helm` install line in the Makefile (never the RAFT cluster / ephemeral / monolith
+backend — fixed membership). Then:
+
+```bash
+make up AUTOSCALE=true          # interface scales between 2 and 5 replicas at 60% CPU (HPA_MIN/HPA_MAX/HPA_CPU tune it)
+```
+
+`AUTOSCALE=true` sets `autoscaling.enabled=true` + CPU/memory requests on the interface, and
+`make cluster-up` installs metrics-server. If the interface speaks HTTP REST, set `HPA_LOAD := true`
+before including `common/pattern.mk` to offer `make verify-hpa` (a load generator that watches the HPA
+scale). Otherwise document how to drive load and `kubectl get hpa -w`. See the http/full-stack patterns.
+
 ## Teardown
 
 ```bash

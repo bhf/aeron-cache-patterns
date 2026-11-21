@@ -57,7 +57,7 @@ deploy: ## Install the $(CACHE_TYPE) backend + the sse interface (+ http writer)
 	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-sse ./charts/aeroncache-sse -f values/aeroncache-sse.yaml \
-	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-sse,image) $(ghcr_secret)
+	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(AUTOSCALE_FLAGS) $(call ghcr_image,aeroncache-sse,image) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-http ./charts/aeroncache-http -f values/aeroncache-http.yaml \
 	  $(IFACE_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)

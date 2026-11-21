@@ -134,6 +134,35 @@ Confirm Prometheus discovered the pods with `make observability-prometheus`
 Add it to, or remove it from, an already-running pattern on its own with `make observability-up` /
 `make observability-down`; `make down` removes it too.
 
+## Autoscaling (optional)
+
+Put a **HorizontalPodAutoscaler** on the whole stateless web tier — the http, ws and sse interfaces and
+the Next.js UI. It is an opt-in deployment option like the near cache and observability. `AUTOSCALE=true`
+sets `autoscaling.enabled=true` on each of those charts, gives their pods the CPU/memory **requests** a
+CPU HPA needs, and (via `make cluster-up`) installs **metrics-server**:
+
+```bash
+make up AUTOSCALE=true     # http, ws, sse and the UI each scale between 2 and 5 replicas at 60% CPU
+make verify-hpa            # drive load at the http interface and watch its replica count climb
+```
+
+The bounds and target are tunable, and it composes with the other options:
+
+```bash
+make up AUTOSCALE=true HPA_MIN=2 HPA_MAX=8 HPA_CPU=50
+make up AUTOSCALE=true OBSERVABILITY=true    # watch the replica counts on the Grafana dashboard
+```
+
+`make verify-hpa` seeds a cache and runs concurrent put/get load through the forwarded **http**
+interface while printing `kubectl get hpa` every 15s, so it demonstrates the http interface's HPA
+directly; the ws/sse/UI HPAs are installed too — drive their own traffic (ws/sse clients, or load the UI
+on port 3000) to see them scale, or just watch them all with `kubectl get hpa -w -n
+aeroncache-patterns`. It is an operator aid, not a CI check (metrics lag ~15–30s; replicas stay up
+through the scale-down stabilization window).
+
+> The RAFT cluster / ephemeral **backend** is never autoscaled: its membership is fixed, so scaling it
+> would break consensus. `AUTOSCALE` only touches the stateless interface/UI tier.
+
 ## Teardown
 
 ```bash

@@ -17,6 +17,9 @@ SMOKE_PORT    := 7070
 # cache served them, by scraping the http interface's own /prometheus (Micrometer) near counters.
 NEAR_CMD      := bash verify-near.sh
 
+# This interface speaks HTTP REST, so it offers `make verify-hpa` (drive load, watch the HPA scale).
+HPA_LOAD      := true
+
 include ../../common/pattern.mk
 
 # --- Backend selection (CACHE_TYPE) -----------------------------------------
@@ -55,7 +58,7 @@ deploy: ## Install the $(CACHE_TYPE) backend + the http interface
 	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-http ./charts/aeroncache-http -f values/aeroncache-http.yaml \
-	  $(HTTP_FLAGS) $(NEAR_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)
+	  $(HTTP_FLAGS) $(NEAR_FLAGS) $(AUTOSCALE_FLAGS) $(call ghcr_image,aeroncache-http,image) $(ghcr_secret)
 
 undeploy: ## Uninstall the http interface + backend (either backend)
 	$(HELM) uninstall -n $(NAMESPACE) aeroncache-http --ignore-not-found

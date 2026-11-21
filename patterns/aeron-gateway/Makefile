@@ -74,7 +74,7 @@ deploy: ## Install the $(CACHE_TYPE) backend + the aeron transport gateway
 	  $(BACKEND_EXTRA) $(BACKEND_GHCR) $(ghcr_secret)
 	$(HELM) upgrade --install -n $(NAMESPACE) --create-namespace \
 	  aeroncache-gateway ./charts/aeroncache-gateway -f values/aeroncache-gateway.yaml \
-	  $(GATEWAY_FLAGS) $(NEAR_FLAGS) $(GATEWAY_GHCR) $(ghcr_secret)
+	  $(GATEWAY_FLAGS) $(NEAR_FLAGS) $(AUTOSCALE_FLAGS) $(GATEWAY_GHCR) $(ghcr_secret)
 
 undeploy: ## Uninstall the gateway + backend
 	$(HELM) uninstall -n $(NAMESPACE) aeroncache-gateway --ignore-not-found
