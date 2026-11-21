@@ -1,7 +1,7 @@
 title: "Monolith + UI"
 slug: "monolith-ui"
 order: 1
-category: "Foundations"
+category: "All In One - Monolith"
 summary: "The monolith — a single-node cluster plus the HTTP/WS/SSE interfaces in one pod — with the Next.js UI in front of it. The smallest way to run Aeron Cache with a web front end."
 status: "ready"
 difficulty: "beginner"

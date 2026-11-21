@@ -1,7 +1,7 @@
 title: "Monolith"
 slug: "monolith"
 order: 0
-category: "Foundations"
+category: "All In One - Monolith"
 summary: "The whole of Aeron Cache — a single-node cluster plus the HTTP/WS/SSE interfaces — in one self-contained pod. The simplest way to run it on Kubernetes."
 status: "ready"
 difficulty: "beginner"

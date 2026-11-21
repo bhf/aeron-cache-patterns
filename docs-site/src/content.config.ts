@@ -27,6 +27,7 @@ const patternMeta = defineCollection({
     title: z.string(),
     slug: z.string().optional(),
     order: z.number().default(99),
+    section: z.string().default('Kubernetes Patterns'),
     category: z.string(),
     summary: z.string(),
     status: z.enum(['draft', 'ready']).default('draft'),

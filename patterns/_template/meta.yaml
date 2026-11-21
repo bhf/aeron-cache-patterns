@@ -4,7 +4,8 @@
 title: "__PATTERN__"                 # Human-readable title
 slug: "__PATTERN__"                  # URL segment / directory name (kebab-case)
 order: 99                            # Sort order within the category (lower appears first)
-category: "Foundations"              # Foundations | Gateways | Autoscaling | Near cache | Service mesh | GitOps
+section: "Kubernetes Patterns"        # Top-level docs section (defaults to Kubernetes Patterns)
+category: "All In One - Monolith"              # All In One - Monolith | Interfaces | Full stack | Gateways | Autoscaling | Near cache | Service mesh | GitOps
 summary: "One line describing what this pattern demonstrates and when to use it."
 status: "draft"                      # draft | ready
 difficulty: "beginner"               # beginner | intermediate | advanced

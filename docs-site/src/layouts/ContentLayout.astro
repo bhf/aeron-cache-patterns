@@ -1,6 +1,6 @@
 ---
 import BaseLayout from './BaseLayout.astro';
-import { getPatternsByCategory } from '../lib/patterns';
+import { getPatternsBySection } from '../lib/patterns';
 
 export interface Props {
   title: string;
@@ -10,7 +10,7 @@ export interface Props {
 }
 
 const { title, kicker, description, status } = Astro.props;
-const groups = await getPatternsByCategory();
+const sections = await getPatternsBySection();
 const pathname = Astro.url.pathname.replace(/\/+$/, '') || '/';
 const hrefFor = (slug: string) => `/patterns/${slug}`;
 const isActive = (slug: string) => pathname === hrefFor(slug);
@@ -25,7 +25,10 @@ const isActive = (slug: string) => pathname === hrefFor(slug);
           ← All patterns
         </a>
         <nav class="flex flex-col gap-5">
-          {groups.map((g) => (
+          {sections.map((s) => (
+            <div class="flex flex-col gap-5">
+              <p class="text-sm font-semibold text-ink">{s.section}</p>
+              {s.categories.map((g) => (
             <div>
               <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-ink/40">{g.category}</p>
               <ul class="flex flex-col gap-1 border-l border-white/10">
@@ -45,6 +48,8 @@ const isActive = (slug: string) => pathname === hrefFor(slug);
                   </li>
                 ))}
               </ul>
+            </div>
+              ))}
             </div>
           ))}
         </nav>

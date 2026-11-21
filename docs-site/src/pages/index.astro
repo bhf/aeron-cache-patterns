@@ -1,33 +1,38 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getPatternsByCategory } from '../lib/patterns';
+import { getPatternsBySection, SECTION_INTROS } from '../lib/patterns';
 
-const groups = await getPatternsByCategory();
-const total = groups.reduce((n, g) => n + g.patterns.length, 0);
+const sections = await getPatternsBySection();
+const total = sections.reduce((n, s) => n + s.categories.reduce((m, c) => m + c.patterns.length, 0), 0);
 ---
 
 <BaseLayout>
   <section class="mx-auto max-w-content px-5 pt-16">
-    <p class="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-sage-400">Deployment patterns</p>
+    <p class="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-sage-400">Reference patterns</p>
     <h1 class="max-w-3xl text-balance text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
-      Self-contained ways to run <span class="text-sage-400">Aeron Cache</span> on Kubernetes
+      Proven ways to build with <span class="text-sage-400">Aeron Cache</span>
     </h1>
     <p class="mt-5 max-w-2xl text-lg leading-relaxed text-ink/70">
-      Each pattern carries its own vendored Helm charts, a one-command run (<code
-        class="rounded bg-sage-600/15 px-1.5 py-0.5 font-mono text-sm text-sage-200">make up</code
-      >), a smoke test, and its own CI. They pull the public images from
-      <code class="rounded bg-sage-600/15 px-1.5 py-0.5 font-mono text-sm text-sage-200">ghcr.io/bhf/aeroncache-*</code
-      >, so there is nothing to build.
+      A growing collection of self-contained, runnable patterns. Each one is documented, tested in CI, and ready to
+      try with a single command.
     </p>
     <p class="mt-3 font-mono text-xs text-ink/50">{total} pattern{total === 1 ? '' : 's'}</p>
   </section>
 
   <section class="mx-auto max-w-content px-5 py-12">
-    {groups.map((g) => (
+    {sections.map((s) => (
+      <div class="mt-16 first:mt-0">
+        <h2 class="text-2xl font-semibold tracking-tight text-ink">{s.section}</h2>
+        {SECTION_INTROS[s.section] ? (
+          <p class="mb-8 mt-3 max-w-2xl leading-relaxed text-ink/65" set:html={SECTION_INTROS[s.section]} />
+        ) : (
+          <div class="mb-8" />
+        )}
+        {s.categories.map((g) => (
       <div class="mt-10 first:mt-0">
-        <h2 class="mb-5 border-b border-white/10 pb-2 text-sm font-semibold uppercase tracking-widest text-ink/50">
+        <h3 class="mb-5 border-b border-white/10 pb-2 text-sm font-semibold uppercase tracking-widest text-ink/50">
           {g.category}
-        </h2>
+        </h3>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {g.patterns.map((p) => (
             <a
@@ -35,7 +40,7 @@ const total = groups.reduce((n, g) => n + g.patterns.length, 0);
               class="group flex flex-col rounded-xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-sage-600/50 hover:bg-white/[0.05]"
             >
               <div class="flex items-center justify-between gap-2">
-                <h3 class="text-lg font-semibold text-ink transition group-hover:text-sage-300">{p.title}</h3>
+                <h4 class="text-lg font-semibold text-ink transition group-hover:text-sage-300">{p.title}</h4>
                 <span
                   class:list={[
                     'shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide',
@@ -52,6 +57,8 @@ const total = groups.reduce((n, g) => n + g.patterns.length, 0);
             </a>
           ))}
         </div>
+      </div>
+        ))}
       </div>
     ))}
 
