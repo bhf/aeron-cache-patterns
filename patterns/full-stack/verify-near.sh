@@ -62,8 +62,10 @@ check_interface() {
     || fail "[$label] '${CACHE_ID}' was not warm with items within ${WARM_TIMEOUT}s (itemCount=${items})"
 
   after=$(warm_gauge "$base")
-  awk -v a="$after" -v b="$before" 'BEGIN{exit !(a+0 > b+0)}' \
-    || fail "[$label] warm-caches metric did not increase (${before} -> ${after})"
+  # >= 1 (not strictly > before) so a re-run against an already-warm cache still passes; the warm
+  # listing above is the proof this interface's near cache actually holds the cache.
+  awk -v a="$after" 'BEGIN{exit !(a+0 >= 1)}' \
+    || fail "[$label] warm-caches metric is not >= 1 after priming (got ${after})"
   echo "   [$label] OK — warm with ${items} item(s); gauge ${before} -> ${after}"
 }
 

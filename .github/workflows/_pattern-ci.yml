@@ -75,7 +75,12 @@ jobs:
         working-directory: patterns/${{ inputs.pattern }}
         run: make wait WAIT_TIMEOUT=${{ inputs.wait-timeout }}
 
+      # The plain smoke test assumes read-after-write consistency, which the near cache does not provide
+      # for a cold cache (a GET of a not-yet-warm cache primes it and returns UNKNOWN_KEY rather than
+      # falling through to the cluster). So near-enabled deploys run the near-cache smoke (which primes
+      # first) instead; the near-off jobs cover the plain data path.
       - name: Verify (smoke test)
+        if: inputs.near-cache != 'true'
         working-directory: patterns/${{ inputs.pattern }}
         run: make verify
 

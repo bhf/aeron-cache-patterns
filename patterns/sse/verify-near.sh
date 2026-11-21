@@ -57,8 +57,10 @@ echo "    warm: '${CACHE_ID}' holds ${ITEMS} item(s) locally"
 
 AFTER=$(warm_gauge)
 echo "==> aeroncache_near_warm_caches{domain=cache}: ${BEFORE} -> ${AFTER}"
-awk -v a="$AFTER" -v b="$BEFORE" 'BEGIN{exit !(a+0 > b+0)}' \
-  || fail "warm-caches metric did not increase (${BEFORE} -> ${AFTER})"
+# Assert >= 1 (not strictly > before) so a re-run against an already-warm cache still passes; the warm
+# listing above and the near-served hydrate below are the proof the near cache actually holds this cache.
+awk -v a="$AFTER" 'BEGIN{exit !(a+0 >= 1)}' \
+  || fail "warm-caches metric is not >= 1 after priming (got ${AFTER})"
 
 echo "==> Read the snapshot over an SSE hydrate subscription (served from the warm local copy)"
 STREAM=$(curl --silent --no-buffer --max-time 8 \
