@@ -87,6 +87,29 @@ kubectl port-forward -n aeroncache-patterns svc/aeroncache-monolith 7072:7072 & 
 The UI's server-side calls to the cache HTTP API go over in-cluster Service DNS, so they work
 without a port-forward; only ws and sse need one because the browser opens them itself.
 
+## Observability (optional)
+
+Add a **Prometheus + Grafana** stack that scrapes this pattern and ships a Grafana dashboard for it.
+It is an opt-in deployment option rather than a separate flow — the metrics are
+already exposed (the pods carry the `prometheus.io/scrape` and `aeroncache.io/app-metrics-scrape`
+annotations by default), so turning it on just adds the stack that collects and visualises them:
+
+```bash
+make up OBSERVABILITY=true        # deploy the pattern + Prometheus + Grafana
+make observability-grafana        # port-forward Grafana -> http://localhost:3000
+```
+
+`OBSERVABILITY=true` installs the shared chart (`../../common/observability`) into the namespace and
+provisions this pattern's dashboard (`dashboards/monolith-ui.json`, Grafana folder **Aeron Cache
+Patterns**). It layers onto the normal lifecycle and is reapplied by `make redeploy`.
+
+The starter dashboard's panels cover scrape health, JVM heap/CPU, per-operation throughput, cache request rates and active subscriptions; specialise `dashboards/monolith-ui.json` to taste.
+Confirm Prometheus discovered the pods with `make observability-prometheus`
+(→ http://localhost:9090/targets).
+
+Add it to, or remove it from, an already-running pattern on its own with `make observability-up` /
+`make observability-down`; `make down` removes it too.
+
 ## Teardown
 
 ```bash

@@ -1,0 +1,73 @@
+# Optional observability stack (Prometheus + Grafana) for the aeron-cache-patterns.
+#
+# This chart is the *scrape + visualise* half. The *producing* half already ships inside every
+# pattern's vendored charts — no extra flag needed to turn metrics on:
+#   - The cluster/ephemeral/gateway charts carry prometheus.io/scrape by default: their clustertools
+#     sidecar exports the shared Aeron media-driver counters (media driver + cache type 2000 +
+#     subscription type 2200 + gateway type 2100) on /prometheus (port 7080).
+#   - The web interface charts (aeroncache-http/-ws/-sse) also carry aeroncache.io/app-metrics-scrape:
+#     their own Micrometer metrics (per-operation counters, subscription gauges, near-cache
+#     counters, JVM) served on the app HTTP port at /prometheus.
+#   - The monolith patterns enable both annotation sets via their values overlay (the chart defaults
+#     to none), pointing them at the in-process clustertools (7080) and HTTP gateway (7070).
+# Prometheus below discovers all annotated pods automatically, so there is no per-pattern target
+# config here — each pattern just passes its own Grafana dashboard JSON via `grafana.dashboards`.
+#
+# Driven from each pattern's Makefile (see common/pattern.mk):
+#   make up OBSERVABILITY=true     # deploy the pattern WITH the stack
+#   make observability-up          # add the stack to an already-running pattern
+#   make observability-grafana     # port-forward Grafana to http://localhost:3000
+
+# Resource name stem. With "aeroncache" the resources are aeroncache-prometheus / aeroncache-grafana,
+# which the port-forward targets in common/pattern.mk rely on.
+fullnameOverride: "aeroncache"
+nameOverride: ""
+
+prometheus:
+  image:
+    repository: prom/prometheus
+    # Public upstream image pulled from Docker Hub at deploy time, so IfNotPresent (not Never).
+    tag: v2.54.1
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 9090
+  # Global scrape cadence.
+  scrapeInterval: 5s
+  # How long the in-memory/emptyDir TSDB keeps samples. Short because storage is ephemeral.
+  retention: 6h
+  # Namespaces Prometheus searches for annotated pods. The patterns install into aeroncache-patterns;
+  # the Makefile overrides this with the actual NAMESPACE at install time.
+  scrapeNamespaces:
+    - aeroncache-patterns
+  resources: {}
+
+grafana:
+  image:
+    repository: grafana/grafana
+    tag: 11.2.0
+    pullPolicy: IfNotPresent
+  service:
+    # ClusterIP + `make observability-grafana` (port-forward) is the documented local path, so no
+    # minikube tunnel is needed. Switch to LoadBalancer if you want `minikube service` to expose it.
+    type: ClusterIP
+    port: 3000
+  # Anonymous Admin access with no login form (dev convenience). Set to false to require a login.
+  anonymousAccess: true
+  adminUser: admin
+  adminPassword: admin
+  # Dashboards to provision, as a map of {name: <dashboard JSON string>}. Each becomes
+  # <name>.json in Grafana's provisioned "Aeron Cache Patterns" folder. Patterns inject their own
+  # via `--set-file grafana.dashboards.<pattern>=dashboards/<pattern>.json` from the Makefile, so
+  # this is empty by default.
+  dashboards: {}
+  resources: {}
+
+# RBAC for Prometheus' Kubernetes pod service discovery (get/list/watch pods). Required for the
+# annotation-based scraping; disable only if you wire a static scrape config instead.
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: ""
