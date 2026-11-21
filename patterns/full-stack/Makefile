@@ -1,7 +1,8 @@
 # Pattern: full-stack
 #
 # The complete web stack: a backend (clustered or ephemeral) + the http, ws and sse interfaces + the
-# Next.js UI. This is the only pattern with the UI, which consumes http + ws + sse together.
+# Next.js UI, which consumes http + ws + sse together. (The monolith-ui pattern puts the same UI in
+# front of the single-pod monolith instead.)
 # CACHE_TYPE selects the backend:
 #   make up                       # clustered (default)
 #   make up CACHE_TYPE=ephemeral  # single-node ephemeral
