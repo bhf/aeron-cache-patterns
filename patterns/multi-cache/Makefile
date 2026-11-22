@@ -79,12 +79,13 @@ deploy: ## Install COUNT backend+gateway pairs of CACHE_TYPE (clustered|ephemera
 	      $(NEAR_FLAGS) $(AUTOSCALE_FLAGS) $(HTTP_GHCR) $(ghcr_secret); \
 	  else \
 	    ep="aeroncache-ephemeral-$$i"; \
+	    host="$$ep-0.$$ep.$$ns.svc.cluster.local"; \
 	    $(HELM) upgrade --install -n "$$ns" --create-namespace \
 	      "$$ep" ./charts/aeroncache-ephemeral \
 	      --set cacheMode=SINGLE \
 	      --set aeroncacheClusterConfigmap="$$ep-config" \
+	      --set ephemeralResponseControlEndpoint="$$host:8076" \
 	      $(BACKEND_GHCR) $(ghcr_secret); \
-	    host="$$ep-0.$$ep.$$ns.svc.cluster.local"; \
 	    $(HELM) upgrade --install -n "$$ns" --create-namespace \
 	      "aeroncache-http-$$i" ./charts/aeroncache-http -f values/aeroncache-http.yaml \
 	      --set aeroncacheHTTPConfigmap="aeroncache-http-$$i-config" \

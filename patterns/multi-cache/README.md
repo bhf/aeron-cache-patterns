@@ -147,8 +147,11 @@ that parametrise the names the single-instance patterns got to leave constant:
 - **The (unused) Secret name derives from the fullname** so it doesn't collide either.
 
 The Makefile then loops `0..COUNT-1`, installing each backend and pointing its gateway's
-`clusterAddresses` at that backend's pods. Because these are **independent** caches, nothing is shared
-between them — no cross-instance consensus, no shared logical cache, no data migration.
+`clusterAddresses` at that backend's pods. For **ephemeral** instances it also sets each backend's
+`ephemeralResponseControlEndpoint` to that instance's own pod FQDN — the node advertises this address
+for its Aeron response channel, and the chart default is the singleton name, so without the override
+the gateway cannot connect to a renamed instance. Because these are **independent** caches, nothing is
+shared between them — no cross-instance consensus, no shared logical cache, no data migration.
 
 > These chart edits are local to this pattern. Re-running `scripts/sync-charts.sh` re-vendors the
 > upstream charts and **overwrites** them — re-apply the `multi-cache edit:` changes after a refresh.
