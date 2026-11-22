@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # multi-cache edit: name is driven by a value (default below) so several cluster releases can
+  # coexist in one namespace, each owning its own config. The Deployment/clustertools read the same
+  # value via envFrom, so they stay in sync.
+  name: {{ .Values.aeroncacheClusterConfigmap }}
+  namespace: {{ .Release.Namespace }}
+data:
+  DNS_DELAY: "true"
+  CACHE_MODE: {{ .Values.cacheMode | quote }}
+  # multi-cache edit: the RAFT peer list is derived from THIS release's own headless Service name
+  # (the chart fullname) and replicaCount, instead of the single hardcoded "aeroncache-cluster" name.
+  # So instance B's nodes resolve instance B's peers, and the list tracks the node count.
+  {{- $fullname := include "aeroncache-cluster.fullname" . -}}
+  {{- $ns := .Release.Namespace -}}
+  {{- $addrs := list -}}
+  {{- range $i := until (int .Values.replicaCount) -}}
+  {{- $addrs = append $addrs (printf "%s-%d.%s.%s.svc.cluster.local" $fullname $i $fullname $ns) -}}
+  {{- end }}
+  CLUSTER_ADDRESSES: {{ $addrs | join "," | quote }}
+  {{- if .Values.idleStrategy }}
+  IDLE_STRATEGY: {{ tpl .Values.idleStrategy . | quote }}
+  {{- end }}
+  {{- printf "environments/configmap.%s.yaml" .Values.env | .Files.Get | nindent 2 }}

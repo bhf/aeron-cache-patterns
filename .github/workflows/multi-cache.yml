@@ -1,0 +1,35 @@
+name: Multi-cache
+
+# Runs the multi-cache pattern against both backend types (clustered + ephemeral) via the reusable
+# workflow. COUNT defaults to 2, so each job stands up two independent backend+gateway pairs in one
+# namespace and `make verify` exercises every gateway. Fires only when this pattern, the shared
+# pieces, or the reusable workflow change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/multi-cache/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/multi-cache.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/multi-cache/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/multi-cache.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  multi-cache:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: multi-cache
+      cache-type: ${{ matrix.cache-type }}
+      # Two clustered instances is ~8 pods on kind; give the whole namespace room to go Ready.
+      wait-timeout: "600s"

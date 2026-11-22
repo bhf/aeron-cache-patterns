@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # multi-cache edit: name driven by a value so several ephemeral releases can coexist in one
+  # namespace. The Deployment reads the same value via envFrom.
+  name: {{ .Values.aeroncacheClusterConfigmap }}
+  namespace: {{ .Release.Namespace }}
+data:
+  EPHEMERAL_REQUEST_ENDPOINT: {{ tpl .Values.ephemeralRequestEndpoint . | quote }}
+  EPHEMERAL_RESPONSE_CONTROL_ENDPOINT: {{ tpl .Values.ephemeralResponseControlEndpoint . | quote }}
+  # Shorten Aeron image liveness so a cache restart is detected quickly and the response channel is
+  # rebuilt before clients would send a request into the stale (still "connected") channel.
+  AERON_IMAGE_LIVENESS_TIMEOUT_SECONDS: {{ .Values.aeronImageLivenessTimeoutSeconds | quote }}
+  DNS_DELAY: "true"
+  CACHE_MODE: {{ .Values.cacheMode | quote }}
+  # multi-cache edit: addresses derived from this release's own fullname + replicaCount (SINGLE mode
+  # runs one node, so this is just node-0) rather than the hardcoded "aeroncache-ephemeral" name.
+  {{- $fullname := include "aeroncache-ephemeral.fullname" . -}}
+  {{- $ns := .Release.Namespace -}}
+  {{- $addrs := list -}}
+  {{- range $i := until (int .Values.replicaCount) -}}
+  {{- $addrs = append $addrs (printf "%s-%d.%s.%s.svc.cluster.local" $fullname $i $fullname $ns) -}}
+  {{- end }}
+  CLUSTER_ADDRESSES: {{ $addrs | join "," | quote }}
+  {{- if .Values.idleStrategy }}
+  IDLE_STRATEGY: {{ tpl .Values.idleStrategy . | quote }}
+  {{- end }}
+  {{- printf "environments/configmap.%s.yaml" .Values.env | .Files.Get | nindent 2 }}
