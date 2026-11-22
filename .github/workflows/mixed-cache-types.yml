@@ -1,0 +1,30 @@
+name: Mixed cache types
+
+# Runs the mixed-cache-types pattern via the reusable workflow. This pattern always deploys BOTH
+# backend types at once (one clustered + one ephemeral, a gateway each), so there is no cache-type
+# matrix — a single job stands up both pairs in one namespace and `make verify` exercises each
+# gateway. Fires only when this pattern, the shared pieces, or the reusable workflow change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/mixed-cache-types/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/mixed-cache-types.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/mixed-cache-types/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/mixed-cache-types.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  mixed-cache-types:
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: mixed-cache-types
+      # Both backend types at once is ~6 pods on kind; give the whole namespace room to go Ready.
+      wait-timeout: "600s"

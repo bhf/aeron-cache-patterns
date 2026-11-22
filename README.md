@@ -9,6 +9,8 @@
 [![SSE interface](https://github.com/bhf/aeron-cache-patterns/actions/workflows/sse.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/sse.yml)
 [![Aeron transport gateway](https://github.com/bhf/aeron-cache-patterns/actions/workflows/aeron-gateway.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/aeron-gateway.yml)
 [![Full stack](https://github.com/bhf/aeron-cache-patterns/actions/workflows/full-stack.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/full-stack.yml)
+[![Multi-cache](https://github.com/bhf/aeron-cache-patterns/actions/workflows/multi-cache.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/multi-cache.yml)
+[![Mixed cache types](https://github.com/bhf/aeron-cache-patterns/actions/workflows/mixed-cache-types.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/mixed-cache-types.yml)
 [![Docs build](https://github.com/bhf/aeron-cache-patterns/actions/workflows/docs-ci.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/docs-ci.yml)
 
 Patterns and deployments for [Aeron Cache](https://github.com/bhf/aeron-cache).

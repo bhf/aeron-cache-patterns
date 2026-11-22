@@ -1,0 +1,10 @@
+# Overlay shared by both http gateways in this pattern (the clustered one and the ephemeral one).
+# Image repository/tag/pullPolicy come from versions.env via the Makefile (ghcr_image); cacheMode /
+# clusterAddresses / ephemeral endpoints / the per-gateway ConfigMap name are set per gateway in the
+# Makefile.
+#
+# ClusterIP so `make verify` reaches each gateway via port-forward (the chart defaults to
+# LoadBalancer, which would spin up one external IP per gateway). For a LoadBalancer locally, drop
+# this and run `minikube tunnel`.
+service:
+  type: ClusterIP
