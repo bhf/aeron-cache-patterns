@@ -1,0 +1,30 @@
+# Vendored charts — managed by scripts/sync-charts.sh. Do not hand-edit chart contents;
+# re-run the script to refresh, then review the diff.
+upstream_repo: https://github.com/bhf/aeron-cache.git
+upstream_ref:  main
+upstream_sha:  4c8c9800ddb882b206b87b28c800a8ed9c8a7236
+synced_at:     2026-11-21T14:13:01Z
+charts:
+  - name: aeroncache-cluster
+    version: 0.0.1
+  - name: aeroncache-ephemeral
+    version: 0.0.1
+  - name: aeroncache-http
+    version: 0.0.1
+
+# LOCAL PATCHES (this pattern only) — NOT upstream. Re-running sync-charts.sh WILL overwrite these;
+# re-apply them after a refresh. They exist because this pattern runs several cache instances in one
+# namespace, which the singleton charts don't support out of the box. Each edit is marked in-place
+# with a "multi-cache edit:" comment. See README.md ("How it works").
+#   aeroncache-cluster, aeroncache-ephemeral:
+#     - templates/configmap.yaml: ConfigMap metadata.name now reads .Values.aeroncacheClusterConfigmap
+#       (was a hardcoded literal) so each release owns its own config.
+#     - templates/configmap.yaml: CLUSTER_ADDRESSES is derived from the release's own fullname +
+#       replicaCount (was a fixed 3-node list keyed to the single "aeroncache-cluster" name).
+#     - values.yaml: fullnameOverride and serviceAccount.name blanked so names derive from the
+#       (per-instance) release name.
+#     - templates/secrets.yaml: Secret metadata.name now derives from the fullname (was hardcoded).
+#   aeroncache-http:
+#     - templates/configmap.yaml: ConfigMap metadata.name now reads .Values.aeroncacheHTTPConfigmap.
+#     - values.yaml: fullnameOverride and serviceAccount.name blanked.
+#     - templates/secrets.yaml: Secret metadata.name now derives from the fullname (was hardcoded).

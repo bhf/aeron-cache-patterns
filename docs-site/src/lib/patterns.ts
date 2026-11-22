@@ -15,6 +15,7 @@ export const CATEGORY_ORDER = [
   'All In One - Monolith',
   'Interfaces',
   'Full stack',
+  'Topologies',
   'Gateways',
   'Autoscaling',
   'Near cache',
