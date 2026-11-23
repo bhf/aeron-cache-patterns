@@ -129,32 +129,29 @@ cleans up correctly even if you change `COUNT` between `up` and `down`.
 
 ## How it works
 
-The upstream charts are written as **singletons** — one cache, one gateway, fixed names — so two
-releases in a namespace would collide. This pattern vendors the same `aeroncache-cluster`,
-`aeroncache-ephemeral` and `aeroncache-http` charts as the other patterns, with a few **local edits**
-(each marked `multi-cache edit:` in the templates, and listed in [charts/VENDOR.lock](charts/VENDOR.lock))
-that parametrise the names the single-instance patterns got to leave constant:
+The `aeroncache-cluster`, `aeroncache-ephemeral` and `aeroncache-http` charts are **release-aware**:
+every resource name derives from the Helm release name, so installing each instance under a distinct
+release (`aeroncache-cluster-0`, `aeroncache-http-0`, …) is enough to keep them from colliding. These
+are the same charts the single-instance patterns use — no local edits; the single-instance patterns
+simply install with the release name equal to the chart name, which reproduces the fixed names.
 
-- **Names derive from the release.** `fullnameOverride` and `serviceAccount.name` are blanked so each
-  instance's StatefulSet/Service/ServiceAccount take the per-instance release name
+What makes that work, per instance:
+
+- **Names derive from the release.** With `fullnameOverride` left blank (the chart default), each
+  instance's StatefulSet/Service/ServiceAccount/Secret take the per-instance release name
   (`aeroncache-cluster-0`, `aeroncache-http-0`, …).
-- **ConfigMap names are a value.** The backend/gateway ConfigMap `metadata.name` reads
-  `aeroncacheClusterConfigmap` / `aeroncacheHTTPConfigmap`, which the Makefile sets per instance, so
-  each release owns its own config (the Deployment reads the same value via `envFrom`).
+- **The ConfigMap name derives too.** Each chart's ConfigMap `metadata.name` defaults to
+  `<release>-config` via a shared `configmapName` helper that the Deployment (and clustertools) also
+  read via `envFrom`, so each release owns its own config with no extra flags.
 - **`CLUSTER_ADDRESSES` is derived.** The backend's RAFT peer list is built from its **own** fullname
-  and `replicaCount` instead of the one hardcoded `aeroncache-cluster` name — so instance B's nodes
-  resolve instance B's peers, and the list tracks `NODES`.
-- **The (unused) Secret name derives from the fullname** so it doesn't collide either.
+  and `replicaCount`, so instance B's nodes resolve instance B's peers and the list tracks `NODES`.
 
 The Makefile then loops `0..COUNT-1`, installing each backend and pointing its gateway's
 `clusterAddresses` at that backend's pods. For **ephemeral** instances it also sets each backend's
 `ephemeralResponseControlEndpoint` to that instance's own pod FQDN — the node advertises this address
-for its Aeron response channel, and the chart default is the singleton name, so without the override
-the gateway cannot connect to a renamed instance. Because these are **independent** caches, nothing is
-shared between them — no cross-instance consensus, no shared logical cache, no data migration.
-
-> These chart edits are local to this pattern. Re-running `scripts/sync-charts.sh` re-vendors the
-> upstream charts and **overwrites** them — re-apply the `multi-cache edit:` changes after a refresh.
+for its Aeron response channel, so the gateway can reach the renamed instance. Because these are
+**independent** caches, nothing is shared between them — no cross-instance consensus, no shared
+logical cache, no data migration.
 
 ## References
 

@@ -15,8 +15,8 @@
 #   aeroncache-ephemeral         ← ephemeral backend (SINGLE mode, one pod)
 #   aeroncache-http-ephemeral    ←   its gateway, wired to the ephemeral node
 # A gateway connects to exactly one backend, so each (backend, gateway) is an independent pair. The
-# backends keep their natural chart names; the two gateways are renamed so they don't collide. See
-# the README ("How it works") for the chart edits that let two http gateways share one namespace.
+# backends keep their natural chart names; the two gateways are given distinct release names, so
+# their resources derive from those names and don't collide. See the README ("How it works").
 
 PATTERN       := mixed-cache-types
 NAMESPACE     ?= aeroncache-patterns
@@ -63,13 +63,11 @@ deploy: ## Install a clustered cache and an ephemeral cache, each with its own h
 	$(HELM) upgrade --install -n "$$ns" --create-namespace \
 	  "$(CL_BACKEND)" ./charts/aeroncache-cluster \
 	  --set replicaCount=$(NODES) \
-	  --set aeroncacheClusterConfigmap="$(CL_BACKEND)-config" \
 	  $(BACKEND_GHCR) $(ghcr_secret); \
 	addrs=""; sep=""; for n in $$(seq 0 $$(( $(NODES) - 1 ))); do \
 	  addrs="$${addrs}$${sep}$(CL_BACKEND)-$${n}.$(CL_BACKEND).$${ns}.svc.cluster.local"; sep='\,'; done; \
 	$(HELM) upgrade --install -n "$$ns" --create-namespace \
 	  "$(CL_GATEWAY)" ./charts/aeroncache-http -f values/aeroncache-http.yaml \
-	  --set aeroncacheHTTPConfigmap="$(CL_GATEWAY)-config" \
 	  --set clusterAddresses="$$addrs" \
 	  $(NEAR_FLAGS) $(AUTOSCALE_FLAGS) $(HTTP_GHCR) $(ghcr_secret); \
 	echo '--- ephemeral cache ---'; \
@@ -77,12 +75,10 @@ deploy: ## Install a clustered cache and an ephemeral cache, each with its own h
 	$(HELM) upgrade --install -n "$$ns" --create-namespace \
 	  "$(EP_BACKEND)" ./charts/aeroncache-ephemeral \
 	  --set cacheMode=SINGLE \
-	  --set aeroncacheClusterConfigmap="$(EP_BACKEND)-config" \
 	  --set ephemeralResponseControlEndpoint="$$ephost:8076" \
 	  $(BACKEND_GHCR) $(ghcr_secret); \
 	$(HELM) upgrade --install -n "$$ns" --create-namespace \
 	  "$(EP_GATEWAY)" ./charts/aeroncache-http -f values/aeroncache-http.yaml \
-	  --set aeroncacheHTTPConfigmap="$(EP_GATEWAY)-config" \
 	  --set cacheMode=SINGLE \
 	  --set clusterAddresses="$$ephost" \
 	  --set ephemeralRequestEndpoint="$$ephost:8075" \
