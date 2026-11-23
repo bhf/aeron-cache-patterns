@@ -143,6 +143,7 @@ CPU/memory **requests** a CPU HPA needs, and (via `make cluster-up`) installs **
 ```bash
 make up AUTOSCALE=true                        # the gateway scales between 2 and 5 replicas at 60% CPU
 make up AUTOSCALE=true HPA_MIN=2 HPA_MAX=8 HPA_CPU=50   # tunable; composes with OBSERVABILITY/NEAR_CACHE
+make up AUTOSCALE=true HPA_MEM=70    # also scale on memory (% of the memory request; the HPA follows whichever metric wants more replicas)
 ```
 
 The gateway's data path is Aeron (UDP), not HTTP, so there is no `make verify-hpa` helper here (unlike
