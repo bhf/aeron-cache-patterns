@@ -107,7 +107,7 @@ Both gateways are a stateless interface tier, so they can carry a HorizontalPodA
 membership is fixed):
 
 ```bash
-make up AUTOSCALE=true     # each gateway scales 2..5 at 60% CPU (HPA_MIN/HPA_MAX/HPA_CPU tune it)
+make up AUTOSCALE=true     # each gateway scales 2..5 at 60% CPU (HPA_MIN/HPA_MAX/HPA_CPU tune it; add HPA_MEM=70 to also scale on memory)
 make verify-hpa            # drive load at the clustered gateway and watch its HPA scale up
 ```
 

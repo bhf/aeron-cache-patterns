@@ -63,7 +63,7 @@ each interface chart's `helm` install line in the Makefile (never the RAFT clust
 backend — fixed membership). Then:
 
 ```bash
-make up AUTOSCALE=true          # interface scales between 2 and 5 replicas at 60% CPU (HPA_MIN/HPA_MAX/HPA_CPU tune it)
+make up AUTOSCALE=true          # interface scales between 2 and 5 replicas at 60% CPU (HPA_MIN/HPA_MAX/HPA_CPU tune it; add HPA_MEM=70 to also scale on memory)
 ```
 
 `AUTOSCALE=true` sets `autoscaling.enabled=true` + CPU/memory requests on the interface, and

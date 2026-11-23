@@ -54,7 +54,7 @@ any of them, so one convention covers every combination:
 - **`AUTOSCALE`** — `false` (default) or `true` to put a **HorizontalPodAutoscaler** on the pattern's
   stateless interface tier (the http/ws/sse/gateway interfaces and the Next.js UI — never the
   fixed-membership RAFT/ephemeral/monolith backends). It sets the CPU/memory requests the HPA needs and
-  installs metrics-server (`make cluster-up`). Tune with `HPA_MIN`/`HPA_MAX`/`HPA_CPU`; where the
+  installs metrics-server (`make cluster-up`). Tune with `HPA_MIN`/`HPA_MAX`/`HPA_CPU` (and optionally `HPA_MEM` to add a memory target); where the
   interface speaks HTTP, `make verify-hpa` drives load and watches it scale.
 
 `CACHE_TYPE` and `NEAR_CACHE` are orthogonal, so all four combinations are just `make up` plus the

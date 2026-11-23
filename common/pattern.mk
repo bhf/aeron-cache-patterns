@@ -84,6 +84,10 @@ OBS_DASHBOARD_FLAG = $(if $(wildcard $(OBS_DASHBOARD)),--set-file grafana.dashbo
 #   make up AUTOSCALE=true OBSERVABILITY=true   # watch the replica count climb on the Grafana dashboard
 # The bounds and target are tunable on the same command line:
 #   make up AUTOSCALE=true HPA_MIN=2 HPA_MAX=8 HPA_CPU=50
+# Memory is an optional second metric: HPA_MEM=<percent of the memory request> adds a memory target
+# alongside CPU (the HPA scales on whichever asks for more replicas). Unset by default — a JVM's heap
+# plateaus rather than tracking load, so memory is a weak signal except with the near cache:
+#   make up AUTOSCALE=true HPA_MEM=70
 # HPAs need metrics-server in the cluster; `make cluster-up` (and so `make up`) installs it when
 # AUTOSCALE=true (minikube addon / kind manifest). Where an interface speaks HTTP, `make verify-hpa`
 # drives load against it and watches the HPA scale up (see the gated target below).
@@ -98,6 +102,8 @@ HPA_MAX         ?= 5
 HPA_CPU         ?= 60
 HPA_CPU_REQUEST ?= 100m
 HPA_MEM_REQUEST ?= 256Mi
+# Optional memory utilization target (% of HPA_MEM_REQUEST); empty = no memory metric on the HPA.
+HPA_MEM         ?=
 # Applied to an interface chart's helm install (never the backend install). Empty when disabled.
 AUTOSCALE_FLAGS = $(if $(filter true,$(AUTOSCALE)),\
   --set autoscaling.enabled=true \
@@ -105,7 +111,8 @@ AUTOSCALE_FLAGS = $(if $(filter true,$(AUTOSCALE)),\
   --set autoscaling.maxReplicas=$(HPA_MAX) \
   --set autoscaling.targetCPUUtilizationPercentage=$(HPA_CPU) \
   --set resources.requests.cpu=$(HPA_CPU_REQUEST) \
-  --set resources.requests.memory=$(HPA_MEM_REQUEST))
+  --set resources.requests.memory=$(HPA_MEM_REQUEST) \
+  $(if $(strip $(HPA_MEM)),--set autoscaling.targetMemoryUtilizationPercentage=$(HPA_MEM)))
 
 # Exported so common/smoke.sh picks them up without per-pattern wiring.
 export NAMESPACE SMOKE_SERVICE SMOKE_PORT LOCAL_PORT CACHE_ID SMOKE_MODE SMOKE_CMD \
