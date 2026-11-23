@@ -11,8 +11,9 @@
 # Each instance i is two Helm releases wired as a pair, all in the same namespace:
 #   aeroncache-cluster-i (or aeroncache-ephemeral-i)  ← the backend
 #   aeroncache-http-i                                 ← its gateway, bound to that backend only
-# A gateway connects to exactly one backend, so "N caches" means N backend+gateway pairs. See the
-# README ("How it works") for the chart edits that let the singleton charts run N-up in one namespace.
+# A gateway connects to exactly one backend, so "N caches" means N backend+gateway pairs. Each
+# release gets a distinct name, so its resources (ConfigMap, Secret, Service, ServiceAccount) derive
+# from that name and the pairs don't collide — see the README ("How it works").
 
 PATTERN       := multi-cache
 NAMESPACE     ?= aeroncache-patterns
@@ -68,13 +69,11 @@ deploy: ## Install COUNT backend+gateway pairs of CACHE_TYPE (clustered|ephemera
 	    $(HELM) upgrade --install -n "$$ns" --create-namespace \
 	      "$$cl" ./charts/aeroncache-cluster \
 	      --set replicaCount=$(NODES) \
-	      --set aeroncacheClusterConfigmap="$$cl-config" \
 	      $(BACKEND_GHCR) $(ghcr_secret); \
 	    addrs=""; sep=""; for n in $$(seq 0 $$(( $(NODES) - 1 ))); do \
 	      addrs="$${addrs}$${sep}$${cl}-$${n}.$${cl}.$${ns}.svc.cluster.local"; sep='\,'; done; \
 	    $(HELM) upgrade --install -n "$$ns" --create-namespace \
 	      "aeroncache-http-$$i" ./charts/aeroncache-http -f values/aeroncache-http.yaml \
-	      --set aeroncacheHTTPConfigmap="aeroncache-http-$$i-config" \
 	      --set clusterAddresses="$$addrs" \
 	      $(NEAR_FLAGS) $(AUTOSCALE_FLAGS) $(HTTP_GHCR) $(ghcr_secret); \
 	  else \
@@ -83,12 +82,10 @@ deploy: ## Install COUNT backend+gateway pairs of CACHE_TYPE (clustered|ephemera
 	    $(HELM) upgrade --install -n "$$ns" --create-namespace \
 	      "$$ep" ./charts/aeroncache-ephemeral \
 	      --set cacheMode=SINGLE \
-	      --set aeroncacheClusterConfigmap="$$ep-config" \
 	      --set ephemeralResponseControlEndpoint="$$host:8076" \
 	      $(BACKEND_GHCR) $(ghcr_secret); \
 	    $(HELM) upgrade --install -n "$$ns" --create-namespace \
 	      "aeroncache-http-$$i" ./charts/aeroncache-http -f values/aeroncache-http.yaml \
-	      --set aeroncacheHTTPConfigmap="aeroncache-http-$$i-config" \
 	      --set cacheMode=SINGLE \
 	      --set clusterAddresses="$$host" \
 	      --set ephemeralRequestEndpoint="$$host:8075" \

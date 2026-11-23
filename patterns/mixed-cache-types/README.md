@@ -126,35 +126,27 @@ make cluster-down    # (optional) delete the whole cluster
 
 ## How it works
 
-The upstream charts are written as **singletons** — one cache, one gateway, fixed names. Here the two
-**backends** keep their natural chart names (`aeroncache-cluster`, `aeroncache-ephemeral`), so they
-don't collide with each other. The problem is the two **http gateways**: two `aeroncache-http`
-releases in one namespace would both try to create an `aeroncache-http`-named ConfigMap, Secret,
-Service and ServiceAccount.
+The `aeroncache-cluster`, `aeroncache-ephemeral` and `aeroncache-http` charts are **release-aware**:
+every resource name derives from the Helm release name. Here the two **backends** keep their natural
+chart names (`aeroncache-cluster`, `aeroncache-ephemeral`), so they don't collide with each other. The
+two **http gateways** would otherwise collide — two `aeroncache-http` releases both wanting an
+`aeroncache-http`-named ConfigMap, Secret, Service and ServiceAccount — so each is given a distinct
+release name and its resources follow:
 
-This pattern vendors the same `aeroncache-cluster`, `aeroncache-ephemeral` and `aeroncache-http`
-charts as [multi-cache](../multi-cache), with the same **local edits** (each marked
-`mixed-cache-types edit:` in the templates, and listed in [charts/VENDOR.lock](charts/VENDOR.lock))
-that parametrise the names the single-instance patterns got to leave constant:
-
-- **Names derive from the release.** `fullnameOverride` and `serviceAccount.name` are blanked so each
-  gateway's Service/ServiceAccount take its own release name (`aeroncache-http-clustered`,
+- **Names derive from the release.** With `fullnameOverride` left blank (the chart default), each
+  gateway's Service/ServiceAccount/Secret take its own release name (`aeroncache-http-clustered`,
   `aeroncache-http-ephemeral`).
-- **ConfigMap names are a value.** The gateway ConfigMap `metadata.name` reads
-  `aeroncacheHTTPConfigmap`, which the Makefile sets per gateway, so each release owns its own config
-  (the Deployment reads the same value via `envFrom`).
-- **The Secret name derives from the fullname** so it doesn't collide either.
+- **The ConfigMap name derives too.** Each gateway's ConfigMap `metadata.name` defaults to
+  `<release>-config` via a shared `configmapName` helper that the Deployment also reads via `envFrom`,
+  so each release owns its own config with no extra flags.
 
-The Makefile installs four releases: the clustered backend and its gateway (gateway's
-`clusterAddresses` → the RAFT peers, CLUSTER mode), then the ephemeral backend and its gateway
-(`cacheMode=SINGLE`, `clusterAddresses` → the ephemeral node, and the Aeron
-`ephemeralRequestEndpoint` / `ephemeralResponseControlEndpoint` pointed at that node — the node
-advertises its response-control address for the Aeron response channel). The two caches are entirely
-**independent**: no shared consensus, no shared logical cache, no data migration between them.
-
-> These chart edits are local to this pattern. Re-running `scripts/sync-charts.sh` re-vendors the
-> upstream charts and **overwrites** them — re-apply the `mixed-cache-types edit:` changes after a
-> refresh.
+These are the same charts the other patterns use — no local edits. The Makefile installs four
+releases: the clustered backend and its gateway (gateway's `clusterAddresses` → the RAFT peers,
+CLUSTER mode), then the ephemeral backend and its gateway (`cacheMode=SINGLE`, `clusterAddresses` →
+the ephemeral node, and the Aeron `ephemeralRequestEndpoint` / `ephemeralResponseControlEndpoint`
+pointed at that node — the node advertises its response-control address for the Aeron response
+channel). The two caches are entirely **independent**: no shared consensus, no shared logical cache,
+no data migration between them.
 
 ## References
 

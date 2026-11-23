@@ -2,8 +2,8 @@
 # re-run the script to refresh, then review the diff.
 upstream_repo: https://github.com/bhf/aeron-cache.git
 upstream_ref:  main
-upstream_sha:  4c8c9800ddb882b206b87b28c800a8ed9c8a7236
-synced_at:     2026-11-21T14:13:03Z
+upstream_sha:  3f9788fa610987240f2f44c774527d75e6713e21
+synced_at:     2026-11-23T20:36:24Z
 charts:
   - name: aeroncache-cluster
     version: 0.0.1

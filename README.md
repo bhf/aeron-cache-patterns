@@ -131,5 +131,3 @@ scripts/sync-charts.sh my-pattern aeroncache-monolith   # the charts it deploys
 ```bash
 cd docs-site && npm install && npm run dev
 ```
-
-It is not deployed yet — Cloudflare Pages deployment will come later.
