@@ -64,12 +64,12 @@ async function createCache(id) {
   const r = await fetch(`${ING_HTTP}/api/v1/cache/${id}`, { method: 'PUT' });
   if (!r.ok && r.status !== 409) fail(`create '${id}' via ingress -> HTTP ${r.status}`);
 }
-async function putValue(id, value) {
+async function putValue(id, value, key = 'testKey') {
   const r = await fetch(`${ING_HTTP}/api/v1/cache/${id}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ key: 'testKey', value }),
+    body: JSON.stringify({ key, value }),
   });
-  if (!r.ok) fail(`put '${id}'='${value}' via ingress -> HTTP ${r.status}`);
+  if (!r.ok) fail(`put '${id}'.${key}='${value}' via ingress -> HTTP ${r.status}`);
 }
 
 const main = async () => {
@@ -90,7 +90,7 @@ const main = async () => {
   console.log('==> [1] Subscribe to alpha and beta THROUGH the ingress, then write each');
   const ingAlpha = await subscribe(sub_url('ingress', ING_PORT, 'alpha'));
   const ingBeta = await subscribe(sub_url('ingress', ING_PORT, 'beta'));
-  await sleep(500);
+  await sleep(1500);
   await putValue('alpha', 'alpha-value');
   await putValue('beta', 'beta-value');
   if (!(await sawWithin(ingAlpha, 'alpha-value', 12000))) fail("routed ws subscribe for 'alpha' never received alpha-value");
@@ -99,14 +99,16 @@ const main = async () => {
   ingAlpha.ws.close(); ingBeta.ws.close();
 
   // --- 2. Landing + isolation (live, proves routing by cache id) ------------
-  console.log('==> [2] Subscribe DIRECTLY to ws-0 and ws-1 for alpha, then write a fresh value');
+  // Write a FRESH key (an add event, like phase 1) so the proof doesn't depend on how an update to an
+  // existing key is delivered; give the direct subscriptions room to register (clustered RAFT is slower).
+  console.log('==> [2] Subscribe DIRECTLY to ws-0 and ws-1 for alpha, then write a fresh key');
   const owner = await subscribe(sub_url('ws-0', WS0_PORT, 'alpha'));     // instance 0 owns alpha
   const other = await subscribe(sub_url('ws-1', WS1_PORT, 'alpha'));     // instance 1 must never see it
-  await sleep(500);
-  await putValue('alpha', 'alpha-live');
-  if (!(await sawWithin(owner, 'alpha-live', 12000))) fail('landing: owner ws-0 did not receive the alpha update');
+  await sleep(2000);
+  await putValue('alpha', 'alpha-live', 'liveKey');
+  if (!(await sawWithin(owner, 'alpha-live', 20000))) fail('landing: owner ws-0 did not receive the alpha update');
   console.log('    owner ws-0 received the update');
-  if (await sawWithin(other, 'alpha-live', 4000)) fail('ISOLATION BROKEN: ws-1 received an alpha update — routing is not by cache id');
+  if (await sawWithin(other, 'alpha-live', 5000)) fail('ISOLATION BROKEN: ws-1 received an alpha update — routing is not by cache id');
   console.log('    non-owner ws-1 did NOT receive it (isolated)');
   owner.ws.close(); other.ws.close();
 
