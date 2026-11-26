@@ -2,7 +2,7 @@ title: "SSE interface"
 slug: "sse"
 order: 12
 category: "Interfaces"
-summary: "A backend plus the Server-Sent Events streaming interface (with an http writer alongside, since SSE is read-only). Clustered or ephemeral via CACHE_TYPE."
+summary: "A backend plus the SSE streaming interface, with an HTTP writer alongside. Set CACHE_TYPE for clustered or ephemeral."
 status: "ready"
 difficulty: "beginner"
 prereqs: []

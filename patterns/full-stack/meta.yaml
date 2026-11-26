@@ -2,7 +2,7 @@ title: "Full stack (http + ws + sse + UI)"
 slug: "full-stack"
 order: 20
 category: "Full stack"
-summary: "The complete web stack — a backend plus the http, ws and sse interfaces and the Next.js UI, which consumes all three interfaces together. Clustered or ephemeral via CACHE_TYPE."
+summary: "A backend plus the HTTP, WS and SSE interfaces and the Next.js UI. Set CACHE_TYPE for clustered or ephemeral."
 status: "ready"
 difficulty: "intermediate"
 prereqs: []

@@ -3,7 +3,7 @@ slug: "routing-http"
 order: 40
 section: "Routing patterns"
 category: "Request/response"
-summary: "Route by cache id to the http gateway that owns that cache. Two independent (backend + http gateway) pairs sit behind one Ingress; a request for cache 'alpha' goes to instance 0, 'beta' to instance 1 — and an isolation check proves it was routed by the id, not round-robin. CACHE_TYPE picks clustered or ephemeral backends."
+summary: "Route by cache id to the HTTP gateway that owns it, behind one Ingress."
 status: "ready"
 difficulty: "intermediate"
 prereqs: [ingress-nginx]

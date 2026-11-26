@@ -3,7 +3,7 @@ slug: "routing-ws"
 order: 42
 section: "Routing patterns"
 category: "Unidirectional streaming"
-summary: "Route by cache id to the WebSocket gateway that owns that cache. Two caches behind one Ingress; a subscribe to /api/ws/v1/cache/alpha streams from instance 0, beta from instance 1, with writes routed by the same id to each instance's http writer. The bidi endpoint carries the id in the frame (not the URL) so it isn't path-routable; this routes the unidirectional subscribe route. An isolation check proves it."
+summary: "Route by cache id to the WebSocket gateway that owns it, behind one Ingress."
 status: "ready"
 difficulty: "intermediate"
 prereqs: [ingress-nginx]

@@ -2,7 +2,7 @@ title: "Mixed cache types (clustered + ephemeral side by side)"
 slug: "mixed-cache-types"
 order: 31
 category: "Topologies"
-summary: "Run one clustered (3-node RAFT) cache and one ephemeral (single-node SINGLE) cache in the same namespace at once, each fronted by its own HTTP gateway. Demonstrates that the two backend types coexist and are verified independently — durable consensus alongside a lightweight throwaway cache."
+summary: "One clustered and one ephemeral cache side by side, each with its own HTTP gateway."
 status: "ready"
 difficulty: "intermediate"
 prereqs: []

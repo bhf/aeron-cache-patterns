@@ -2,7 +2,7 @@ title: "HTTP interface"
 slug: "http"
 order: 10
 category: "Interfaces"
-summary: "A backend plus only the HTTP request/response interface. Runs against a clustered (RAFT) or ephemeral (SINGLE) backend via CACHE_TYPE."
+summary: "A backend plus the HTTP request/response interface. Set CACHE_TYPE for clustered or ephemeral."
 status: "ready"
 difficulty: "beginner"
 prereqs: []

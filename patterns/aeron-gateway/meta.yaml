@@ -2,7 +2,7 @@ title: "Aeron transport gateway"
 slug: "aeron-gateway"
 order: 13
 category: "Interfaces"
-summary: "A backend (clustered or ephemeral) plus the SBE-Aeron transport gateway — the bidirectional bidi-aeron interface over Aeron UDP."
+summary: "A backend plus the SBE-Aeron transport gateway, which exposes the cache over Aeron UDP."
 status: "ready"
 difficulty: "intermediate"
 prereqs: []

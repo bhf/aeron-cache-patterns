@@ -2,7 +2,7 @@ title: "Multi-cache (N caches, one gateway each)"
 slug: "multi-cache"
 order: 30
 category: "Topologies"
-summary: "Run N independent cache instances side by side in one namespace — clustered (RAFT) or ephemeral (SINGLE) — each fronted by its own HTTP gateway so every cache can be verified on its own. Set the count and type with COUNT / CACHE_TYPE."
+summary: "N independent caches side by side, each with its own HTTP gateway. Set COUNT and CACHE_TYPE."
 status: "ready"
 difficulty: "intermediate"
 prereqs: []
