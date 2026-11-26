@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aeroncache-router
+description: Front door for the routing patterns. Renders a single Kubernetes Ingress that routes by cache id (taken from the request path) to the per-instance gateway that owns that cache — one path rule per cache id, for the http, sse or ws interface. Served by an ingress-nginx controller (installed by common/ingress.sh). First-party chart, like common/observability; not vendored.
+type: application
+version: 0.0.1
+appVersion: "0.0.1"

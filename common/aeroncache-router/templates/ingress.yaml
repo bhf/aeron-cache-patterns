@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "aeroncache-router.fullname" . }}
+  labels:
+    {{- include "aeroncache-router.labels" . | nindent 4 }}
+  annotations:
+    # The cache id sits mid-path, so match it with a regex.
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    {{- if eq .Values.interface "sse" }}
+    # SSE is a long-lived event stream: nginx must not buffer it, and must not time the upstream out.
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    {{- else if eq .Values.interface "ws" }}
+    # WebSocket upgrade is auto-detected by ingress-nginx; it just needs a long read/send timeout so a
+    # quiet subscription is not closed.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    {{- end }}
+    {{- with .Values.extraAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingressClassName }}
+  rules:
+    {{- if .Values.host }}
+    - host: {{ .Values.host | quote }}
+      http:
+        paths:
+          {{- include "aeroncache-router.paths" . | nindent 10 }}
+    {{- else }}
+    - http:
+        paths:
+          {{- include "aeroncache-router.paths" . | nindent 10 }}
+    {{- end }}

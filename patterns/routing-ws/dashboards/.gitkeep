@@ -1,0 +1,3 @@
+# Put this pattern's Grafana dashboard here as <slug>.json (same name as the pattern slug).
+# It is provisioned by the optional observability stack: `make up OBSERVABILITY=true`.
+# See common/observability and a sibling pattern's dashboards/ for a starter to copy.

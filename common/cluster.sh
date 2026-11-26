@@ -12,11 +12,15 @@
 #   MINIKUBE_ARGS  optional extra args for `minikube start`
 #   AUTOSCALE      true installs metrics-server (HPAs need it); set by pattern.mk from make
 #   METRICS_SERVER true forces metrics-server install even without AUTOSCALE
+#   INGRESS        true installs an ingress-nginx controller (the routing patterns need it); set by
+#                  pattern.mk from make. CI installs it via patterns/routing-*/prereqs.sh instead,
+#                  since the kind cluster there is created by helm/kind-action, not `make cluster-up`.
 set -euo pipefail
 
 CLUSTER="${CLUSTER:-minikube}"
 CLUSTER_NAME="${CLUSTER_NAME:-aeroncache-patterns}"
 METRICS_SERVER_VERSION="${METRICS_SERVER_VERSION:-v0.7.2}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # metrics-server powers HorizontalPodAutoscalers (and `kubectl top`). Installed only when autoscaling
 # is requested so the default/CI path stays lean. Idempotent: re-running just re-applies.
@@ -37,6 +41,15 @@ ensure_metrics_server() {
       kubectl -n kube-system rollout status deployment metrics-server --timeout=120s
       ;;
   esac
+}
+
+# ingress-nginx powers the routing patterns' cache-id Ingress. Installed only when requested so the
+# default/CI path stays lean. Idempotent (common/ingress.sh re-applies and re-waits). Works on both
+# minikube and kind via the baremetal manifest + port-forward (no addon / node label needed).
+ensure_ingress() {
+  [[ "${INGRESS:-false}" == "true" ]] || return 0
+  echo "Ensuring ingress-nginx is installed (INGRESS=true)..."
+  bash "${SCRIPT_DIR}/ingress.sh" install
 }
 
 cluster_up() {
@@ -67,6 +80,7 @@ cluster_up() {
       ;;
   esac
   ensure_metrics_server
+  ensure_ingress
 }
 
 cluster_down() {

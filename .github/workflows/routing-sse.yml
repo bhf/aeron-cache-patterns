@@ -1,0 +1,36 @@
+name: Routing SSE
+
+# Runs the routing-sse pattern against both backend types (clustered + ephemeral) via the reusable
+# workflow. Two caches behind one Ingress, each with an sse reader + http writer; prereqs.sh installs
+# the ingress-nginx controller, then `make verify` proves subscriptions and writes are routed to the
+# owning gateway by cache id (with an isolation check over the SSE stream). Fires on changes to this
+# pattern, the shared router chart / ingress installer, the shared pieces, or the reusable workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/routing-sse/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/routing-sse.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/routing-sse/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/routing-sse.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  routing-sse:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: routing-sse
+      cache-type: ${{ matrix.cache-type }}
+      # Two backends + sse readers + http writers + the ingress controller; give the namespace room.
+      wait-timeout: "600s"

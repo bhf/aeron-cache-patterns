@@ -29,6 +29,16 @@ CLUSTER_NAME  ?= aeroncache-patterns
 HELM          ?= helm
 KUBECTL       ?= kubectl
 
+# Ingress controller (INGRESS): the routing patterns set this to 'true' so `make cluster-up` (and so
+# `make up`) installs an ingress-nginx controller via common/ingress.sh — the front door their cache-id
+# Ingress needs. Other patterns leave it 'false'. In CI the kind cluster is created by helm/kind-action
+# (not `make cluster-up`), so the routing patterns install the controller from their prereqs.sh instead;
+# both paths call the same common/ingress.sh, so they cannot drift.
+INGRESS       ?= false
+ifeq ($(filter $(INGRESS),true false),)
+  $(error INGRESS must be 'true' or 'false' (got '$(INGRESS)'))
+endif
+
 # Near cache (NEAR_CACHE): opt into the server-side near cache on the pattern's interface(s). When
 # 'true', the interface keeps a warm local copy of a cache (subscribing to keep it warm) and serves
 # reads/hydration from it instead of round-tripping to the cluster — it sets nearCacheEnabled=true on
@@ -133,7 +143,7 @@ help: ## Show this pattern's targets
 
 cluster-up: ## Create/start the local cluster (minikube; CLUSTER=kind for kind)
 	@CLUSTER=$(CLUSTER) CLUSTER_NAME=$(CLUSTER_NAME) KIND_CONFIG=$(KIND_CONFIG) \
-	  AUTOSCALE=$(AUTOSCALE) METRICS_SERVER=$(METRICS_SERVER) \
+	  AUTOSCALE=$(AUTOSCALE) METRICS_SERVER=$(METRICS_SERVER) INGRESS=$(INGRESS) \
 	  bash $(COMMON_DIR)/cluster.sh cluster_up
 
 cluster-down: ## Delete the local cluster

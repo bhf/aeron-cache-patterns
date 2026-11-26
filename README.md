@@ -11,13 +11,16 @@
 [![Full stack](https://github.com/bhf/aeron-cache-patterns/actions/workflows/full-stack.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/full-stack.yml)
 [![Multi-cache](https://github.com/bhf/aeron-cache-patterns/actions/workflows/multi-cache.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/multi-cache.yml)
 [![Mixed cache types](https://github.com/bhf/aeron-cache-patterns/actions/workflows/mixed-cache-types.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/mixed-cache-types.yml)
+[![Routing HTTP](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-http.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-http.yml)
+[![Routing SSE](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-sse.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-sse.yml)
+[![Routing WebSocket](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-ws.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-ws.yml)
 [![Docs build](https://github.com/bhf/aeron-cache-patterns/actions/workflows/docs-ci.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/docs-ci.yml)
 
 Patterns and deployments for [Aeron Cache](https://github.com/bhf/aeron-cache).
 
 Each **pattern** is a self-contained, easy-to-spin-up Kubernetes deployment that demonstrates
 one way of running Aeron Cache — a monolith, a clustered backend with gateways, autoscaling,
-near caching, service mesh, GitOps, and so on. Every pattern carries its own vendored Helm
+near caching, cache-id routing, and so on. Every pattern carries its own vendored Helm
 charts, a one-command run (`make up`), a smoke test (`make verify`), co-located docs, and its
 own CI.
 

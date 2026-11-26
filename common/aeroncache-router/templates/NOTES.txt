@@ -1,0 +1,26 @@
+aeroncache-router installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Interface: {{ .Values.interface }}   IngressClass: {{ .Values.ingressClassName }}
+
+Routes (cache id -> gateway that owns it):
+{{- range $r := .Values.routes }}
+  {{ $r.cacheId }} -> {{ $.Values.readRelease }}-{{ $r.instance }}:{{ $.Values.readPort }}
+  {{- if ne $.Values.interface "http" }} (writes -> {{ $.Values.writeRelease }}-{{ $r.instance }}:{{ $.Values.writePort }}){{ end }}
+{{- end }}
+
+Reach the front door by port-forwarding the ingress-nginx controller, then address caches by id:
+
+  kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+{{- if eq .Values.interface "http" }}
+  curl -X PUT  localhost:8080/api/v1/cache/{{ (index .Values.routes 0).cacheId }}
+  curl -X POST localhost:8080/api/v1/cache/{{ (index .Values.routes 0).cacheId }} -H 'Content-Type: application/json' -d '{"key":"k","value":"v"}'
+  curl        localhost:8080/api/v1/cache/{{ (index .Values.routes 0).cacheId }}/k
+{{- else if eq .Values.interface "sse" }}
+  curl -X PUT  localhost:8080/api/v1/cache/{{ (index .Values.routes 0).cacheId }}                      # write via the routed http writer
+  curl -N      localhost:8080/api/sse/v1/cache/hydrate/{{ (index .Values.routes 0).cacheId }}          # read via the routed sse gateway
+{{- else if eq .Values.interface "ws" }}
+  curl -X PUT  localhost:8080/api/v1/cache/{{ (index .Values.routes 0).cacheId }}                      # write via the routed http writer
+  # subscribe (ws): ws://localhost:8080/api/ws/v1/cache/{{ (index .Values.routes 0).cacheId }}
+{{- end }}
+
+A cache id not in the route list has no matching path and returns 404 — routing is explicit.
