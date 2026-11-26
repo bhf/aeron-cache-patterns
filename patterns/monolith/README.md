@@ -66,7 +66,7 @@ You can also drive it by hand once it is up:
 ```bash
 kubectl port-forward -n aeroncache-patterns svc/aeroncache-monolith 7070:7070 &
 curl -s localhost:7070/readiness/
-curl -s -X POST localhost:7070/api/v1/cache -H 'Content-Type: application/json' -d '{"cacheId":"demo"}'
+curl -s -X PUT localhost:7070/api/v1/cache/demo
 curl -s -X POST localhost:7070/api/v1/cache/demo -H 'Content-Type: application/json' -d '{"key":"k","value":"v"}'
 curl -s localhost:7070/api/v1/cache/demo/k
 ```

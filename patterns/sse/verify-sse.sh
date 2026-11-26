@@ -14,8 +14,7 @@ CACHE_ID="${CACHE_ID:-smoke-sse}"
 fail() { echo "SSE VERIFY FAILED: $*" >&2; exit 1; }
 
 echo "==> Create cache '${CACHE_ID}' via http"
-curl --fail --silent --show-error -X POST "${HTTP_BASE}/api/v1/cache" \
-  -H 'Content-Type: application/json' -d "{\"cacheId\": \"${CACHE_ID}\"}" >/dev/null \
+curl --fail --silent --show-error -X PUT "${HTTP_BASE}/api/v1/cache/${CACHE_ID}" >/dev/null \
   || fail "create cache via http"
 
 echo "==> Put item (testKey=testValue) via http"

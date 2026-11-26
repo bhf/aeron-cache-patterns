@@ -41,7 +41,7 @@ constant.
 ## 2. Terminology (the source of most confusion)
 
 The app **already** multiplexes many **logical caches** inside one backend:
-`POST /api/v1/cache {cacheId}` then `/api/v1/cache/<cacheId>/<key>`. That `cacheId` is a logical
+`PUT /api/v1/cache/<cacheId>` then `/api/v1/cache/<cacheId>/<key>`. That `cacheId` is a logical
 cache **within one backend**, not a routing key to a different deployment.
 
 So "route by cache id" splits two ways:
@@ -102,7 +102,7 @@ Current cache routes (`aeron-cache`:
 
 | Verb + path | Handler | cacheId location |
 |---|---|---|
-| `POST /api/v1/cache/` | createCache | **body** |
+| `PUT /api/v1/cache/<cacheId>` | createCache | URL |
 | `GET /api/v1/cache/<cacheId>/<key>` | getItem | URL |
 | `GET /api/v1/cache/<cacheId>` | getCache | URL |
 | `POST /api/v1/cache/<cacheId>` | **putItem** | URL |
@@ -113,13 +113,16 @@ Current cache routes (`aeron-cache`:
 
 Two consequences for an L7 router (design B):
 
-1. **Create is body-only**, and it **cannot** be moved to `POST /api/v1/cache/<cacheId>` because
-   that path+verb is already **putItem**. The fix is a different verb (`PUT /api/v1/cache/<cacheId>`
-   = create/ensure) or a new subpath — an upstream change.
+1. **Create is now URL-keyed too** — `PUT /api/v1/cache/<cacheId>` (create/ensure), distinct from
+   `POST /api/v1/cache/<cacheId>` (putItem) by verb. This landed upstream in
+   [`aeron-cache#306`](https://github.com/bhf/aeron-cache/pull/306) (release `v0.0.47-SNAPSHOT`);
+   it used to be body-only (`POST /api/v1/cache {cacheId}`), which was the one route an L7 router
+   could not shard on a URL segment. That blocker is now gone — every cache route carries the
+   `cacheId` in the path.
 2. **The id is not always in a fixed slot** (`timed/<id>`, `increment/<id>`, `cancel-removal`
    mid-path), so a shard-key regex needs alternation, not a fixed segment index.
 
-Design C needs **none** of this — the gateway reads the cacheId from the body on create directly.
+Design C needs **none** of this — the gateway decodes the cacheId from each request directly.
 
 ## 5. Per-interface routability (verified)
 

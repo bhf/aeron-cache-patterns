@@ -72,7 +72,7 @@ curl -N http://localhost:7072/api/sse/v1/cache/hydrate/demo
 and in another, write — the event appears in the first:
 
 ```bash
-curl -X POST http://localhost:7070/api/v1/cache -H 'Content-Type: application/json' -d '{"cacheId":"demo"}'
+curl -X PUT http://localhost:7070/api/v1/cache/demo
 curl -X POST http://localhost:7070/api/v1/cache/demo -H 'Content-Type: application/json' -d '{"key":"k","value":"v"}'
 ```
 

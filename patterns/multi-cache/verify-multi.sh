@@ -44,9 +44,8 @@ for i in $(seq 0 $(( COUNT - 1 ))); do
     "${base}/readiness/" >/dev/null || fail "instance ${i} readiness did not return 2xx"
 
   echo "==> [instance ${i}] create cache '${cache}'"
-  curl --fail --silent --show-error -X POST "${base}/api/v1/cache" \
-    -H 'Content-Type: application/json' \
-    -d "{\"cacheId\": \"${cache}\"}" >/dev/null || fail "instance ${i} create cache"
+  curl --fail --silent --show-error -X PUT "${base}/api/v1/cache/${cache}" \
+    >/dev/null || fail "instance ${i} create cache"
 
   echo "==> [instance ${i}] put item (testKey=testValue-${i})"
   curl --fail --silent --show-error -X POST "${base}/api/v1/cache/${cache}" \
