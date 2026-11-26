@@ -40,8 +40,7 @@ echo "==> Baseline:"; show_hpa
 START_REPLICAS="$(replica_total)"
 
 # Seed the cache the workers hammer (idempotent — a 409/4xx just means it already exists).
-curl --fail --silent --show-error -X POST "${BASE}/api/v1/cache" \
-  -H 'Content-Type: application/json' -d "{\"cacheId\": \"${CACHE_ID}\"}" >/dev/null 2>&1 || true
+curl --fail --silent --show-error -X PUT "${BASE}/api/v1/cache/${CACHE_ID}" >/dev/null 2>&1 || true
 
 # A value payload sized to make each put/get cost some server CPU (serialization + near/cluster work).
 VALUE="$(head -c $((VALUE_KB * 1024)) /dev/zero | tr '\0' 'x')"

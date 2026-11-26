@@ -27,8 +27,7 @@ warm_gauge() {
 }
 
 echo "==> Create cache '${CACHE_ID}' and write an item (via http)"
-curl --fail --silent --show-error -X POST "${HTTP_BASE}/api/v1/cache" \
-  -H 'Content-Type: application/json' -d "{\"cacheId\": \"${CACHE_ID}\"}" >/dev/null \
+curl --fail --silent --show-error -X PUT "${HTTP_BASE}/api/v1/cache/${CACHE_ID}" >/dev/null \
   || echo "    (create returned non-2xx — continuing, cache may already exist)"
 curl --fail --silent --show-error -X POST "${HTTP_BASE}/api/v1/cache/${CACHE_ID}" \
   -H 'Content-Type: application/json' -d '{"key": "testKey", "value": "testValue"}' >/dev/null \

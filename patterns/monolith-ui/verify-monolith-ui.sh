@@ -14,8 +14,7 @@ CACHE_ID="${CACHE_ID:-smoke-monolith-ui}"
 fail() { echo "MONOLITH-UI VERIFY FAILED: $*" >&2; exit 1; }
 
 echo "==> HTTP round-trip against the monolith (create/put/get)"
-curl --fail --silent --show-error -X POST "${MONO_BASE}/api/v1/cache" \
-  -H 'Content-Type: application/json' -d "{\"cacheId\": \"${CACHE_ID}\"}" >/dev/null || fail "create cache"
+curl --fail --silent --show-error -X PUT "${MONO_BASE}/api/v1/cache/${CACHE_ID}" >/dev/null || fail "create cache"
 curl --fail --silent --show-error -X POST "${MONO_BASE}/api/v1/cache/${CACHE_ID}" \
   -H 'Content-Type: application/json' -d '{"key": "testKey", "value": "testValue"}' >/dev/null || fail "put item"
 RESP=$(curl --fail --silent --show-error "${MONO_BASE}/api/v1/cache/${CACHE_ID}/testKey") || fail "get item"

@@ -68,9 +68,8 @@ case "$SMOKE_MODE" in
 
   http)
     echo "==> Create cache '${CACHE_ID}'"
-    curl --fail --silent --show-error -X POST "${BASE}/api/v1/cache" \
-      -H 'Content-Type: application/json' \
-      -d "{\"cacheId\": \"${CACHE_ID}\"}" >/dev/null || fail "create cache"
+    curl --fail --silent --show-error -X PUT "${BASE}/api/v1/cache/${CACHE_ID}" \
+      >/dev/null || fail "create cache"
 
     echo "==> Put item (testKey=testValue)"
     curl --fail --silent --show-error -X POST "${BASE}/api/v1/cache/${CACHE_ID}" \

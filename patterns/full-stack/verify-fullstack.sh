@@ -14,8 +14,7 @@ CACHE_ID="${CACHE_ID:-smoke-fullstack}"
 fail() { echo "FULL-STACK VERIFY FAILED: $*" >&2; exit 1; }
 
 echo "==> HTTP round-trip (create/put/get)"
-curl --fail --silent --show-error -X POST "${HTTP_BASE}/api/v1/cache" \
-  -H 'Content-Type: application/json' -d "{\"cacheId\": \"${CACHE_ID}\"}" >/dev/null || fail "create cache"
+curl --fail --silent --show-error -X PUT "${HTTP_BASE}/api/v1/cache/${CACHE_ID}" >/dev/null || fail "create cache"
 curl --fail --silent --show-error -X POST "${HTTP_BASE}/api/v1/cache/${CACHE_ID}" \
   -H 'Content-Type: application/json' -d '{"key": "testKey", "value": "testValue"}' >/dev/null || fail "put item"
 RESP=$(curl --fail --silent --show-error "${HTTP_BASE}/api/v1/cache/${CACHE_ID}/testKey") || fail "get item"

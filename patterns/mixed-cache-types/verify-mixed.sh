@@ -45,9 +45,8 @@ for i in "${!SERVICES[@]}"; do
     "${base}/readiness/" >/dev/null || fail "${label} readiness did not return 2xx"
 
   echo "==> [${label}] create cache '${cache}'"
-  curl --fail --silent --show-error -X POST "${base}/api/v1/cache" \
-    -H 'Content-Type: application/json' \
-    -d "{\"cacheId\": \"${cache}\"}" >/dev/null || fail "${label} create cache"
+  curl --fail --silent --show-error -X PUT "${base}/api/v1/cache/${cache}" \
+    >/dev/null || fail "${label} create cache"
 
   echo "==> [${label}] put item (testKey=testValue-${label})"
   curl --fail --silent --show-error -X POST "${base}/api/v1/cache/${cache}" \
