@@ -1,0 +1,36 @@
+name: Routing WebSocket
+
+# Runs the routing-ws pattern against both backend types (clustered + ephemeral) via the reusable
+# workflow. Two caches behind one Ingress, each with a ws reader + http writer; prereqs.sh installs the
+# ingress-nginx controller, then `make verify` (a Node 22 WebSocket round-trip) proves subscriptions and
+# writes are routed to the owning gateway by cache id (with a live isolation check). Fires on changes to
+# this pattern, the shared router chart / ingress installer, the shared pieces, or the reusable workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/routing-ws/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/routing-ws.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/routing-ws/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/routing-ws.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  routing-ws:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: routing-ws
+      cache-type: ${{ matrix.cache-type }}
+      # Two backends + ws readers + http writers + the ingress controller; give the namespace room.
+      wait-timeout: "600s"

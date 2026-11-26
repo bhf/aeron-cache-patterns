@@ -1,0 +1,11 @@
+title: "Routing: SSE"
+slug: "routing-sse"
+order: 41
+section: "Routing patterns"
+category: "Unidirectional streaming"
+summary: "Route by cache id to the SSE gateway that owns that cache — the streaming, unidirectional variant of routing-http. Two caches behind one Ingress; a hydrate subscription for 'alpha' streams from instance 0, 'beta' from instance 1, and writes are routed by the same id to each instance's http writer. An isolation check proves routing by cache id works for streams too."
+status: "ready"
+difficulty: "intermediate"
+prereqs: [ingress-nginx]
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-http, aeroncache-sse]
+projectItem: ""

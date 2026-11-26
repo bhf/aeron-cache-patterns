@@ -1,0 +1,48 @@
+# aeroncache-router — a single Ingress that routes by cache id to the per-instance gateway that owns
+# that cache. The routing patterns install this in front of a multi-cache-style fan-out. It is a
+# first-party chart (like common/observability); nothing here builds or vendors an image — the Ingress
+# is served by an ingress-nginx controller that common/ingress.sh installs.
+
+# Which interface this front door routes for: http | sse | ws. Drives the path shapes that carry the
+# cache id and the nginx annotations (SSE needs buffering off; WS needs a long read timeout).
+interface: http
+
+# Namespace the gateway Services live in. Informational (the Ingress and its backend Services are in
+# the same namespace as this release); surfaced in NOTES.
+namespace: aeroncache-patterns
+
+# IngressClass of the installed controller. common/ingress.sh installs ingress-nginx, whose class is
+# "nginx".
+ingressClassName: nginx
+
+# Optional Host for the Ingress rule. Empty = a host-less rule that matches any Host header, which is
+# what the port-forward-based verify uses. Set a host for a name-based deployment.
+host: ""
+
+# Release-name stem + Service port of the gateway that SERVES each routed cache id (the "read" path).
+#   http -> aeroncache-http:7070   sse -> aeroncache-sse:7072   ws -> aeroncache-ws:7071
+# Each route targets Service "<readRelease>-<instance>".
+readRelease: aeroncache-http
+readPort: 7070
+
+# Release-name stem + Service port of the gateway that accepts WRITES for each routed cache id. SSE and
+# WS are read-only on the routed path, so their writes are routed to the http writer that shares the
+# backend (aeroncache-http-<instance>:7070). For the http interface this equals the read gateway, so
+# the write rule is suppressed (see the template) to avoid a duplicate path.
+writeRelease: aeroncache-http
+writePort: 7070
+
+# The static cache-id -> instance map. Each cache id is routed to "<release>-<instance>". A cache id
+# not listed here has no matching path and returns 404 at the Ingress — routing is explicit, never
+# round-robin. The routing patterns set this to [{alpha,0},{beta,1}].
+routes:
+  - cacheId: alpha
+    instance: 0
+  - cacheId: beta
+    instance: 1
+
+# Extra annotations merged onto the Ingress (after the interface-specific ones).
+extraAnnotations: {}
+
+# Extra labels merged onto the Ingress.
+extraLabels: {}
