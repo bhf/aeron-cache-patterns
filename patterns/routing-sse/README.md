@@ -108,7 +108,9 @@ make cluster-down    # (optional) delete the whole cluster
 - **Fan-out, reused.** The deploy loop installs, per instance, an `aeroncache-cluster-i` (or
   `-ephemeral-i`) backend, an `aeroncache-sse-i` reader, and an `aeroncache-http-i` writer — the reader
   and writer wired to the same backend (`clusterAddresses` / ephemeral endpoints applied to both), the
-  [sse](../sse) pattern's writer-alongside shape, fanned out two ways.
+  [sse](../sse) pattern's writer-alongside shape, fanned out two ways. The vendored `aeroncache-sse` chart
+  is patched to be release-aware (like the upstream http/cluster charts) so it fans out without colliding —
+  see [`charts/PATCHES.md`](charts/PATCHES.md).
 - **One Ingress, two rule kinds.** The shared [`common/aeroncache-router`](../../common/aeroncache-router)
   chart emits both the sse read rule and the http write rule per cache id, with the SSE-specific nginx
   annotations.

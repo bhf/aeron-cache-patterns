@@ -38,6 +38,15 @@ the plain fullname, so service discovery and cross-component wiring are unaffect
 {{- end }}
 
 {{/*
+ConfigMap name. Defaults to "<fullname>-config" so it tracks the release like the other resources (this
+is what makes the chart release-aware — i.e. fannable out under per-instance release names); override
+aeroncacheWSConfigmap to pin a name. Read by the ConfigMap and the Deployment.
+*/}}
+{{- define "aeroncache-ws.configmapName" -}}
+{{- .Values.aeroncacheWSConfigmap | default (printf "%s-config" (include "aeroncache-ws.fullname" .)) -}}
+{{- end }}
+
+{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "aeroncache-ws.chart" -}}

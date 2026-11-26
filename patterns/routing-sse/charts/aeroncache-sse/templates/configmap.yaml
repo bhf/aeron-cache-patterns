@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: aeroncache-sse-config
+  name: {{ include "aeroncache-sse.configmapName" . }}
   namespace: {{ .Release.namespace }}
 data:
   DNS_DELAY: "true"
