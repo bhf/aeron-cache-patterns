@@ -10,10 +10,9 @@ cacheMode: "RAFT"
 # snapshot. Also exposes the near cache management endpoints. Sets NEAR_CACHE_ENABLED on the container.
 nearCacheEnabled: false
 
-# ConfigMap name to use for the cluster config. Leave blank to derive "<release>-config" (release-aware,
-# so the chart can be installed under per-instance release names without the ConfigMap colliding); set a
-# value to pin a specific name.
-aeroncacheWSConfigmap: ""
+# ConfigMap name. Blank means "<fullname>-config" (derived from the release); set a value to pin a
+# specific name. Read by the ConfigMap and the Deployment via the configmapName helper.
+aeroncacheSSEConfigmap: ""
 
 # Ephemeral (SINGLE mode) cache response-channel endpoints. Left blank in clustered (RAFT) mode; set
 # by the install-ephemeral target to the ephemeral cache service's request/response-control endpoints.
@@ -99,8 +98,9 @@ image:
 imagePullSecrets: []
 # This is to override the chart name.
 nameOverride: ""
-# Leave blank so every resource name derives from the Helm release name (release-aware): installing the
-# chart as "aeroncache-sse-0", "aeroncache-sse-1", … then yields non-colliding names per instance.
+# Left blank so the resource names derive from the Helm release name, letting several
+# sse gateways coexist in one namespace. Installing with release name "aeroncache-sse"
+# reproduces the previous fixed names; set this to pin a name.
 fullnameOverride: ""
 
 # This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
