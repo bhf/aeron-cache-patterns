@@ -1,0 +1,14 @@
+apiVersion: v2
+name: aeroncache-ws-keyed-router
+description: >-
+  Front door for the routing-ws-keyed pattern. Renders a single Kubernetes Ingress that splits the
+  WebSocket subscribe endpoint across two gateways that share one backend by whether the subscription
+  is KEYED — keyed subscriptions (/api/ws/v1/cache/<id>?keys=...) to one gateway, whole-cache
+  unidirectional streaming subscriptions (no keys) to another. A keyed subscription differs from a
+  whole-cache one only by the `keys` query parameter, not the path, so this cannot be a path rule:
+  the routing runs in an nginx server-snippet that inspects $arg_keys and proxies to the chosen gateway
+  (so the controller must allow snippet annotations, like the hash-router). First-party chart, like
+  common/observability; not vendored.
+type: application
+version: 0.0.1
+appVersion: "0.0.1"

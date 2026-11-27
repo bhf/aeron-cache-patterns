@@ -18,6 +18,7 @@
 [![Routing Hash SSE](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-hash-sse.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-hash-sse.yml)
 [![Routing Hash WebSocket](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-hash-ws.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-hash-ws.yml)
 [![Routing WS Split](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-ws-split.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-ws-split.yml)
+[![Routing WS Keyed](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-ws-keyed.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-ws-keyed.yml)
 [![Hydration LB](https://github.com/bhf/aeron-cache-patterns/actions/workflows/hydration-lb.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/hydration-lb.yml)
 [![Docs build](https://github.com/bhf/aeron-cache-patterns/actions/workflows/docs-ci.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/docs-ci.yml)
 

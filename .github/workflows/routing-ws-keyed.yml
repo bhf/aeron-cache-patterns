@@ -1,0 +1,40 @@
+name: Routing WS Keyed
+
+# Runs the routing-ws-keyed pattern against both backend types (clustered + ephemeral) via the reusable
+# workflow. One WebSocket subscribe endpoint is split across two gateways over one shared backend by
+# whether the subscription is keyed: /api/ws/v1/cache/<id>?keys=... -> aeroncache-ws-keyed, and the
+# no-keys whole-cache subscribe -> aeroncache-ws-stream. The split is decided from the `keys` query
+# parameter in an nginx server-snippet, so prereqs.sh installs the ingress-nginx controller AND enables
+# snippet annotations (allow-snippets), like the hash-routing patterns. `make verify` then proves each
+# subscription lands on its gateway (per-gateway subscriptions_active) plus keyed filtering and the
+# shared backend. Fires on changes to this pattern, the shared keyed-router chart / ingress installer,
+# the shared pieces, or the reusable workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/routing-ws-keyed/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/routing-ws-keyed.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/routing-ws-keyed/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/routing-ws-keyed.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  routing-ws-keyed:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: routing-ws-keyed
+      cache-type: ${{ matrix.cache-type }}
+      # One shared backend + two ws gateways + the ingress controller; give the namespace room.
+      wait-timeout: "900s"

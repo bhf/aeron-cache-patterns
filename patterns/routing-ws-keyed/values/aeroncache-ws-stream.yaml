@@ -1,0 +1,10 @@
+# Overlay for the STREAM gateway — serves whole-cache subscriptions (no `keys` query parameter), i.e.
+# unidirectional streaming of the entire cache (/api/ws/v1/cache/<id>). Image repository/tag/pullPolicy
+# come from versions.env via the Makefile (ghcr_image); the per-CACHE_TYPE endpoints and the optional
+# near cache are set on the install in the Makefile. Both gateways run the same image over one shared
+# backend; the split is purely which kind of subscription the ingress sends here.
+#
+# ClusterIP so the Service is reachable by the keyed-router Ingress and by the verify's direct
+# port-forward (the chart defaults to LoadBalancer).
+service:
+  type: ClusterIP

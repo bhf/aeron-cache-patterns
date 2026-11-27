@@ -1,0 +1,20 @@
+aeroncache-ws-keyed-router installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+IngressClass : {{ .Values.ingressClassName }}
+Split by whether the subscription is KEYED (both over one shared backend):
+  /api/ws/v1/cache/<id>?keys=...  -> {{ .Values.keyed.service }}:{{ .Values.keyed.port }}   (keyed subscription)
+  /api/ws/v1/cache/<id>           -> {{ .Values.stream.service }}:{{ .Values.stream.port }}   (whole-cache streaming)
+Resolver     : {{ .Values.resolver }}
+
+The keyed/whole-cache split is decided from the `keys` query parameter (not the path, so it cannot be a
+path rule) inside an nginx server-snippet, so the controller must allow snippet annotations:
+
+  bash common/ingress.sh allow-snippets
+
+Reach the front door by port-forwarding the ingress-nginx controller:
+
+  kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+  # keyed subscription:   ws://localhost:8080/api/ws/v1/cache/<id>?keys=<key>   -> {{ .Values.keyed.service }}
+  # whole-cache stream:   ws://localhost:8080/api/ws/v1/cache/<id>             -> {{ .Values.stream.service }}
+
+The chosen class comes back in the X-Aeroncache-Sub-Type response header.

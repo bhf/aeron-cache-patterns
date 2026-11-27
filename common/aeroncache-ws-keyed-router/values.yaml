@@ -1,0 +1,62 @@
+# aeroncache-ws-keyed-router — a single Ingress that splits the WebSocket subscribe endpoint across two
+# gateways that share one backend, by whether the subscription is KEYED:
+#
+#   keyed  /api/ws/v1/cache/<id>?keys=...  -> the keyed gateway  (filtered to specific keys)
+#   stream /api/ws/v1/cache/<id>           -> the stream gateway (whole-cache unidirectional streaming)
+#
+# A keyed subscription is NOT a different path — it is the same subscribe URL with a `keys` query
+# parameter (comma-separated `cacheId:key` or bare `key` filters; omitted = the whole cache). So, unlike
+# common/aeroncache-ws-split-router (disjoint path prefixes) this cannot be a path rule: ingress path
+# matching ignores the query string. The routing therefore runs in an nginx `server-snippet` that reads
+# $arg_keys and proxies to the chosen gateway — the same snippet mechanism as common/aeroncache-hash-router
+# (a variable proxy_pass resolved per request), so the controller must allow snippet annotations:
+#   common/ingress.sh allow-snippets   (sets allow-snippet-annotations + annotations-risk-level)
+#
+# It is a first-party chart (like common/observability); nothing here builds or vendors an image — the
+# Ingress is served by an ingress-nginx controller that common/ingress.sh installs.
+
+# Namespace the gateway Services live in. The Ingress and both Services share this release's namespace;
+# it is interpolated into the in-cluster Service DNS the snippet proxies to.
+namespace: aeroncache-patterns
+
+# IngressClass of the installed controller. common/ingress.sh installs ingress-nginx, whose class is
+# "nginx".
+ingressClassName: nginx
+
+# Optional Host for the Ingress rule. Empty = a host-less rule that matches any Host header, which is
+# what the port-forward-based verify uses. Set a host for a name-based deployment.
+host: ""
+
+# The keyed gateway: the Service that serves subscriptions carrying a non-empty `keys` query parameter.
+keyed:
+  service: aeroncache-ws-keyed
+  port: 7071
+
+# The stream gateway: the Service that serves whole-cache subscriptions (no `keys`, i.e. unidirectional
+# streaming of the entire cache).
+stream:
+  service: aeroncache-ws-stream
+  port: 7071
+
+# The nginx location regex the snippet attaches the keyed-routing logic to. Covers the single-cache and
+# multi-cache subscribe routes and their hydrate variants (/api/ws/v1/cache/<id>,
+# /api/ws/v1/cache/hydrate/<id>, /api/ws/v1/caches/<ids>, …) — all of which accept the `keys` filter.
+subscribePathRegex: "^/api/ws/v1/caches?/"
+
+# DNS resolver the snippet uses to resolve the chosen gateway at request time. A variable proxy_pass
+# (the target is only known per-request, from $arg_keys) is resolved dynamically, so nginx needs a
+# resolver. This is the cluster DNS (CoreDNS) Service ClusterIP — the pattern discovers it at deploy
+# time (kubectl -n kube-system get svc kube-dns -o jsonpath='{.spec.clusterIP}') and overrides this.
+# The default is the common default Service CIDR address for kube-dns.
+resolver: "10.96.0.10"
+
+# Upstream timeouts (seconds). A subscription is a long-lived, mostly-quiet stream, so without these
+# nginx would drop an idle WebSocket at its 60s default.
+readTimeout: 3600
+sendTimeout: 3600
+
+# Extra annotations merged onto the Ingress (after the generated ones).
+extraAnnotations: {}
+
+# Extra labels merged onto the Ingress.
+extraLabels: {}
