@@ -1,0 +1,11 @@
+title: "Routing: Hash (HTTP)"
+slug: "routing-hash-http"
+order: 43
+section: "Routing patterns"
+category: "Request/response"
+summary: "Shard by hash of the cache id to one of N http gateways — any id routes with no per-id config."
+status: "ready"
+difficulty: "intermediate"
+prereqs: [ingress-nginx]
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-http]
+projectItem: ""
