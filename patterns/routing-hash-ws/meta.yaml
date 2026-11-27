@@ -1,0 +1,11 @@
+title: "Routing: Hash (WebSocket)"
+slug: "routing-hash-ws"
+order: 45
+section: "Routing patterns"
+category: "Unidirectional streaming"
+summary: "Shard by hash of the cache id to one of N WebSocket readers (writes to the http writer on the same shard)."
+status: "ready"
+difficulty: "intermediate"
+prereqs: [ingress-nginx]
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-http, aeroncache-ws]
+projectItem: ""

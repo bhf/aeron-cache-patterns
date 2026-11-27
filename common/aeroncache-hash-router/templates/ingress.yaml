@@ -1,5 +1,5 @@
-{{- if ne .Values.interface "http" }}
-{{- fail (printf "aeroncache-hash-router: interface must be http (got %q); sse/ws hash routing is not implemented yet" .Values.interface) }}
+{{- if not (has .Values.interface (list "http" "sse" "ws")) }}
+{{- fail (printf "aeroncache-hash-router: interface must be http|sse|ws (got %q)" .Values.interface) }}
 {{- end }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -21,20 +21,20 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingressClassName }}
   rules:
-    {{- $defaultSvc := printf "%s-0" .Values.readRelease }}
+    {{- /* Default backend for unmatched paths: the http writer on shard 0 (always present). The
+          hash-routing regex locations from the server-snippet win for the cache paths. */}}
+    {{- $defaultSvc := printf "%s-0" .Values.writeRelease }}
     {{- if .Values.host }}
     - host: {{ .Values.host | quote }}
       http:
         paths:
-          # Default backend. The hash-routing regex location (from the server-snippet) wins for
-          # /api/v1/cache/<id>; everything else lands here on shard 0.
           - path: /
             pathType: Prefix
             backend:
               service:
                 name: {{ $defaultSvc }}
                 port:
-                  number: {{ .Values.readPort }}
+                  number: {{ .Values.writePort }}
     {{- else }}
     - http:
         paths:
@@ -44,5 +44,5 @@ spec:
               service:
                 name: {{ $defaultSvc }}
                 port:
-                  number: {{ .Values.readPort }}
+                  number: {{ .Values.writePort }}
     {{- end }}

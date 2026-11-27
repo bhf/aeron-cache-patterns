@@ -1,0 +1,6 @@
+# Overlay for every ws reader in this pattern. Image comes from versions.env via the Makefile
+# (ghcr_image); cacheMode / clusterAddresses / ephemeral endpoints and the per-instance release name
+# are set per instance in the Makefile. ClusterIP so the Ingress and the verify's direct port-forwards
+# can reach each instance (the chart defaults to LoadBalancer).
+service:
+  type: ClusterIP

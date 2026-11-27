@@ -15,6 +15,8 @@
 [![Routing SSE](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-sse.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-sse.yml)
 [![Routing WebSocket](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-ws.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-ws.yml)
 [![Routing Hash HTTP](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-hash-http.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-hash-http.yml)
+[![Routing Hash SSE](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-hash-sse.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-hash-sse.yml)
+[![Routing Hash WebSocket](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-hash-ws.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/routing-hash-ws.yml)
 [![Docs build](https://github.com/bhf/aeron-cache-patterns/actions/workflows/docs-ci.yml/badge.svg)](https://github.com/bhf/aeron-cache-patterns/actions/workflows/docs-ci.yml)
 
 Patterns and deployments for [Aeron Cache](https://github.com/bhf/aeron-cache).
