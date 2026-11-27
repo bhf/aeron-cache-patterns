@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aeroncache-lb-router
+description: Front door for the load-balanced hydration pattern. Renders a single Kubernetes Ingress that spreads every request across a POOL of identical interface gateways (one pool Service, N pods, all warm) round-robin. The dual of aeroncache-hash-router — where that shards a cache id to one owning gateway, this load-balances across the whole pool, so hydrating subscriptions for the same cache are served warm and spread N ways. ingress-nginx round-robins across the Service's endpoints and upgrades WebSocket connections natively, so no server-snippet (and no allow-snippets) is needed — only long upstream timeouts for a quiet long-lived subscription. First-party chart, like common/observability; not vendored.
+type: application
+version: 0.0.1
+appVersion: "0.0.1"

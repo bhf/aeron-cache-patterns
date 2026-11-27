@@ -1,0 +1,42 @@
+# aeroncache-lb-router — a single Ingress that LOAD-BALANCES across a pool of identical interface
+# gateways (one pool Service in front of N StatefulSet pods, all wired to the same backend and all
+# kept warm by the near cache). It is the dual of common/aeroncache-hash-router:
+#
+#   hash-router : shard = crc32(cacheId) % N  ->  one OWNING gateway per id   (partition caches)
+#   lb-router   : round-robin across ALL N pods of the pool  (replicate caches, spread subscribers)
+#
+# ingress-nginx balances new connections across the pool Service's endpoints (the N pods) with its
+# default round-robin, and upgrades WebSocket connections natively — so there is NO server-snippet
+# here and the controller does NOT need allow-snippets (unlike the hash-router). The only tuning is
+# long read/send timeouts so a quiet, long-lived hydrating subscription is not dropped at nginx's
+# default 60s. It is a first-party chart (like common/observability); nothing here builds or vendors
+# an image — the Ingress is served by an ingress-nginx controller that common/ingress.sh installs.
+
+# Namespace the pool Service lives in. The Ingress and the Service share this release's namespace.
+namespace: aeroncache-patterns
+
+# IngressClass of the installed controller. common/ingress.sh installs ingress-nginx, whose class is
+# "nginx".
+ingressClassName: nginx
+
+# Optional Host for the Ingress rule. Empty = a host-less rule that matches any Host header, which is
+# what the port-forward-based verify uses. Set a host for a name-based deployment.
+host: ""
+
+# The pool Service to balance across, and its port. Every pod behind this Service is an identical,
+# warm near-cache gateway, so any pod can serve any subscription; ingress-nginx round-robins new
+# connections across the pods. For the ws interface this is the ws Service on 7071.
+service: aeroncache-ws
+port: 7071
+
+# Upstream timeouts (seconds). A hydrating subscription is a long-lived, mostly-quiet stream, so
+# without these nginx would drop an idle WebSocket at its 60s default. ingress-nginx handles the
+# WebSocket upgrade itself, so these timeouts are the only per-interface tuning required.
+readTimeout: 3600
+sendTimeout: 3600
+
+# Extra annotations merged onto the Ingress (after the generated ones).
+extraAnnotations: {}
+
+# Extra labels merged onto the Ingress.
+extraLabels: {}
