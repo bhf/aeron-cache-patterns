@@ -1,0 +1,37 @@
+name: Routing Hash SSE
+
+# Runs the routing-hash-sse pattern against both backend types (clustered + ephemeral) via the
+# reusable workflow. N cache shards sit behind one Ingress whose server-snippet hashes the cache id to
+# a shard; prereqs.sh installs the ingress-nginx controller AND enables snippet annotations, then
+# `make verify` proves SSE reads (and the http writes) are hashed to the owning shard deterministically
+# (with landing, isolation and crc32 cross-checks). Fires on changes to this pattern, the shared
+# hash-router chart / ingress installer, the shared pieces, or the reusable workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/routing-hash-sse/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/routing-hash-sse.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/routing-hash-sse/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/routing-hash-sse.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  routing-hash-sse:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: routing-hash-sse
+      cache-type: ${{ matrix.cache-type }}
+      # Three clustered shards (backend + sse + http) + the ingress controller; give the namespace room.
+      wait-timeout: "900s"

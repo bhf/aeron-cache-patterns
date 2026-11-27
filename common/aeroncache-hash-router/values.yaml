@@ -12,9 +12,11 @@
 # The hashing lives in an nginx `server-snippet`, so the controller must allow snippet annotations:
 #   common/ingress.sh allow-snippets   (sets allow-snippet-annotations + annotations-risk-level)
 
-# Which interface this front door routes for. Only "http" is supported today (the hash is computed
-# from the /api/v1/cache/<id> path, which http serves for both reads and writes). sse/ws would add
-# their own routed path shapes, as in common/aeroncache-router.
+# Which interface this front door routes for: http | sse | ws. Drives the routed path shapes that
+# carry the cache id (http: /api/v1/cache/<id>; sse: /api/sse/v1/cache/[hydrate/]<id>; ws:
+# /api/ws/v1/cache/<id>) and the per-location tuning (sse needs buffering off; ws needs the upgrade +
+# a long read timeout). For sse/ws the read path hits the sse/ws gateway and writes are routed to the
+# http writer on the SAME shard (readRelease/writeRelease below).
 interface: http
 
 # Namespace the gateway Services live in. The Ingress and its backends share this release's namespace;
@@ -29,10 +31,18 @@ ingressClassName: nginx
 # what the port-forward-based verify uses. Set a host for a name-based deployment.
 host: ""
 
-# Release-name stem + Service port of the per-shard gateways. Shard s is served by Service
-# "<readRelease>-<s>" on <readPort>. The pattern deploys aeroncache-http-0 .. aeroncache-http-<N-1>.
+# Release-name stem + Service port of the per-shard gateways that SERVE each routed cache id (the
+# "read" path). Shard s is served by Service "<readRelease>-<s>" on <readPort>:
+#   http -> aeroncache-http:7070   sse -> aeroncache-sse:7072   ws -> aeroncache-ws:7071
 readRelease: aeroncache-http
 readPort: 7070
+
+# Release-name stem + Service port of the per-shard gateway that accepts WRITES for each routed cache
+# id. SSE and WS are read-only on the routed path, so their writes hash to the http writer that shares
+# the backend (aeroncache-http-<shard>:7070). For the http interface writes == reads, so these are
+# unused (the single http location serves both).
+writeRelease: aeroncache-http
+writePort: 7070
 
 # Number of shards. MUST equal the number of gateways the pattern deployed (aeroncache-http-0 ..
 # aeroncache-http-<shardCount-1>); the snippet computes crc32(cacheId) % shardCount, so a mismatch
