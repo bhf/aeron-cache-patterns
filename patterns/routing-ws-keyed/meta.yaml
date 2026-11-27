@@ -1,0 +1,14 @@
+# Structured metadata for a pattern. The docs-site reads this to build the patterns index
+# and the per-pattern page; the README.md next to it holds the prose (kept frontmatter-free
+# so it renders cleanly on GitHub too).
+title: "Routing: WebSocket keyed vs whole-cache"
+slug: "routing-ws-keyed"
+order: 49
+section: "Routing patterns"
+category: "Connection-type routing"
+summary: "Split the WebSocket subscribe endpoint across two gateways behind one Ingress by whether the subscription is keyed — keyed subscriptions (?keys=…) to one gateway, whole-cache unidirectional streaming (no keys) to another, both over one shared backend. Routed on the query parameter via an nginx snippet, not a path rule."
+status: "ready"
+difficulty: "intermediate"
+prereqs: [ingress-nginx]
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-ws]
+projectItem: ""
