@@ -6,7 +6,7 @@ slug: "routing-ws-split"
 order: 48
 section: "Routing patterns"
 category: "Connection-type routing"
-summary: "Split one WebSocket interface by endpoint role across two gateways behind one Ingress — bidi (read-write command) connections to one gateway, unidirectional streaming (subscribe, with or without hydration) to another, both over one shared backend."
+summary: "Split one WebSocket interface by endpoint role across two gateways behind one Ingress — bidi command connections to one, unidirectional streaming to the other, over one shared backend."
 status: "ready"
 difficulty: "intermediate"
 prereqs: [ingress-nginx]

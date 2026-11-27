@@ -6,7 +6,7 @@ slug: "routing-ws-keyed"
 order: 49
 section: "Routing patterns"
 category: "Connection-type routing"
-summary: "Split the WebSocket subscribe endpoint across two gateways behind one Ingress by whether the subscription is keyed — keyed subscriptions (?keys=…) to one gateway, whole-cache unidirectional streaming (no keys) to another, both over one shared backend. Routed on the query parameter via an nginx snippet, not a path rule."
+summary: "Split the WebSocket subscribe endpoint across two gateways by whether the subscription is keyed (?keys=…) or whole-cache — routed on the query parameter via an nginx snippet, not a path rule."
 status: "ready"
 difficulty: "intermediate"
 prereqs: [ingress-nginx]

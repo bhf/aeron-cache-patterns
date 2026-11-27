@@ -6,7 +6,7 @@ slug: "hydration-lb"
 order: 50
 section: "Kubernetes Patterns"
 category: "Near cache"
-summary: "Prime a pool of near-cache WebSocket gateways and round-robin hydrating subscriptions across them, so snapshot hydration is served warm and spread over the pool — the replication dual of hash routing."
+summary: "Round-robin hydrating subscriptions across a pool of warm near-cache WebSocket gateways — the replication dual of hash routing."
 status: "ready"
 difficulty: "intermediate"
 prereqs: [ingress-nginx]
