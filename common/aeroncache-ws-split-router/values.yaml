@@ -1,0 +1,57 @@
+# aeroncache-ws-split-router — a single Ingress that splits the WebSocket interface by endpoint ROLE
+# across two gateways that share one backend:
+#
+#   bidi    /api/ws/v1/bidi      -> the bidi gateway   (read-write command channel: create/put/get)
+#   stream  /api/ws/v1/cache/…   -> the stream gateway (unidirectional subscribe + snapshot hydration)
+#
+# This is a DIFFERENT routing dimension from common/aeroncache-router (which routes by cache id to the
+# gateway that owns the cache) and common/aeroncache-lb-router (which round-robins a pool): here the id
+# is irrelevant — the request's ENDPOINT selects the gateway, so write/command load and streaming/
+# hydration load land on separate pods that can be scaled, tuned and fail independently.
+#
+# The two endpoints have disjoint static path PREFIXES (/api/ws/v1/bidi vs /api/ws/v1/cache), so the
+# split needs no regex and no Lua server-snippet (unlike the hash-router) — ingress-nginx matches the
+# longest prefix and upgrades the WebSocket natively. The only tuning is long read/send timeouts so a
+# quiet, long-lived subscription or bidi session is not dropped at nginx's 60s default. It is a
+# first-party chart (like common/observability); nothing here builds or vendors an image — the Ingress
+# is served by an ingress-nginx controller that common/ingress.sh installs.
+
+# Namespace the gateway Services live in. The Ingress and both Services share this release's namespace.
+namespace: aeroncache-patterns
+
+# IngressClass of the installed controller. common/ingress.sh installs ingress-nginx, whose class is
+# "nginx".
+ingressClassName: nginx
+
+# Optional Host for the Ingress rule. Empty = a host-less rule that matches any Host header, which is
+# what the port-forward-based verify uses. Set a host for a name-based deployment.
+host: ""
+
+# The bidi gateway: the Service that serves the read-write command channel, and the path prefix that
+# selects it. /api/ws/v1/bidi carries the cache id in the JSON frame (not the URL), so it is not
+# routable by cache id — but it IS routable by its own stable prefix, which is the whole point here.
+bidi:
+  service: aeroncache-ws-bidi
+  port: 7071
+  path: /api/ws/v1/bidi
+
+# The stream gateway: the Service that serves unidirectional reads, and the path prefix that selects
+# it. The one prefix /api/ws/v1/cache covers BOTH the plain subscribe (/api/ws/v1/cache/<id>, future
+# updates only) and the hydrating subscribe (/api/ws/v1/cache/hydrate/<id>, snapshot-on-connect) — i.e.
+# "streaming with or without hydration" lands on this gateway.
+stream:
+  service: aeroncache-ws-stream
+  port: 7071
+  path: /api/ws/v1/cache
+
+# Upstream timeouts (seconds). A subscription and a bidi session are long-lived, mostly-quiet streams,
+# so without these nginx would drop an idle WebSocket at its 60s default. ingress-nginx handles the
+# WebSocket upgrade itself, so these timeouts are the only per-interface tuning required.
+readTimeout: 3600
+sendTimeout: 3600
+
+# Extra annotations merged onto the Ingress (after the generated ones).
+extraAnnotations: {}
+
+# Extra labels merged onto the Ingress.
+extraLabels: {}

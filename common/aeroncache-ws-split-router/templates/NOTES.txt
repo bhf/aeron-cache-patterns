@@ -1,0 +1,17 @@
+aeroncache-ws-split-router installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+IngressClass  : {{ .Values.ingressClassName }}
+Split by endpoint role (both over one shared backend):
+  {{ .Values.bidi.path }}   -> {{ .Values.bidi.service }}:{{ .Values.bidi.port }}   (bidi: read-write command channel)
+  {{ .Values.stream.path }}  -> {{ .Values.stream.service }}:{{ .Values.stream.port }}   (stream: subscribe + hydrate)
+
+Routing is by the request's ENDPOINT PREFIX, not by cache id and not round-robin — write/command
+traffic and streaming/hydration traffic land on separate gateways. No server-snippet is used (the
+prefixes are disjoint and WebSocket is upgraded natively), so the controller needs no allow-snippets.
+
+Reach the front door by port-forwarding the ingress-nginx controller:
+
+  kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+  # bidi (read-write):   ws://localhost:8080{{ .Values.bidi.path }}
+  # subscribe (stream):  ws://localhost:8080{{ .Values.stream.path }}/<id>
+  # hydrate   (stream):  ws://localhost:8080{{ .Values.stream.path }}/hydrate/<id>

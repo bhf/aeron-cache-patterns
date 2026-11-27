@@ -1,0 +1,14 @@
+# Structured metadata for a pattern. The docs-site reads this to build the patterns index
+# and the per-pattern page; the README.md next to it holds the prose (kept frontmatter-free
+# so it renders cleanly on GitHub too).
+title: "Routing: WebSocket by connection type"
+slug: "routing-ws-split"
+order: 48
+section: "Routing patterns"
+category: "Connection-type routing"
+summary: "Split one WebSocket interface by endpoint role across two gateways behind one Ingress — bidi (read-write command) connections to one gateway, unidirectional streaming (subscribe, with or without hydration) to another, both over one shared backend."
+status: "ready"
+difficulty: "intermediate"
+prereqs: [ingress-nginx]
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-ws]
+projectItem: ""

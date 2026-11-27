@@ -1,0 +1,12 @@
+# Overlay for the STREAM gateway — the unidirectional read path (/api/ws/v1/cache/<id> plain subscribe
+# and /api/ws/v1/cache/hydrate/<id> snapshot hydration). Image repository/tag/pullPolicy come from
+# versions.env via the Makefile (ghcr_image); the per-CACHE_TYPE endpoints and nearCacheEnabled=true are
+# set on the install in the Makefile. The server-side near cache is ON here so this gateway serves each
+# subscriber's snapshot hydration from a warm local copy instead of round-tripping the cluster — load
+# that is deliberately isolated from the bidi gateway's command path.
+#
+# ClusterIP so the Service is reachable by the split-router Ingress and by the verify's direct
+# port-forward (for priming the near cache and scraping its /prometheus). The chart defaults to
+# LoadBalancer.
+service:
+  type: ClusterIP

@@ -1,0 +1,39 @@
+name: Routing WS Split
+
+# Runs the routing-ws-split pattern against both backend types (clustered + ephemeral) via the reusable
+# workflow. One WebSocket interface is split by endpoint role across two gateways over one shared
+# backend: bidi -> aeroncache-ws-bidi, unidirectional streaming (subscribe + hydrate) -> aeroncache-ws-stream.
+# prereqs.sh installs the ingress-nginx controller (NO snippets here — the two endpoints have disjoint
+# static path prefixes, routed natively), then `make verify` proves each endpoint lands on its gateway
+# (per-gateway metrics) and that the two gateways share one backend. The near cache is intrinsic to the
+# stream gateway (always on), so there is no near-cache matrix dimension. Fires on changes to this
+# pattern, the shared split-router chart / ingress installer, the shared pieces, or the reusable workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/routing-ws-split/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/routing-ws-split.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/routing-ws-split/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/routing-ws-split.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  routing-ws-split:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: routing-ws-split
+      cache-type: ${{ matrix.cache-type }}
+      # One shared backend + two ws gateways + the ingress controller; give the namespace room.
+      wait-timeout: "900s"
