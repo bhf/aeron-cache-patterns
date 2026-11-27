@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "aeroncache-ws-split-router.fullname" . }}
+  labels:
+    {{- include "aeroncache-ws-split-router.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # The two endpoints have disjoint static path prefixes, so no regex / use-regex is needed.
+    # ingress-nginx upgrades WebSocket connections natively and matches the longest prefix, so there is
+    # NO server-snippet here and the controller does NOT need allow-snippet-annotations (unlike the
+    # hash-router). Long upstream timeouts keep a quiet, long-lived subscription or bidi session from
+    # being dropped at nginx's 60s default.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.readTimeout | quote }}
+    nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.sendTimeout | quote }}
+    {{- with .Values.extraAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingressClassName }}
+  rules:
+    {{- /* Two prefix rules: bidi -> the bidi gateway, the cache stream -> the stream gateway. Both go
+          to Services in this release's namespace. ingress-nginx longest-prefix-matches, so
+          /api/ws/v1/cache/hydrate/<id> and /api/ws/v1/cache/<id> both land on the stream gateway while
+          /api/ws/v1/bidi lands on the bidi gateway. */}}
+    {{- if .Values.host }}
+    - host: {{ .Values.host | quote }}
+      http:
+        paths:
+          {{- include "aeroncache-ws-split-router.paths" . | nindent 10 }}
+    {{- else }}
+    - http:
+        paths:
+          {{- include "aeroncache-ws-split-router.paths" . | nindent 10 }}
+    {{- end }}

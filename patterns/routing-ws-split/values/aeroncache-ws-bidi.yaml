@@ -1,0 +1,10 @@
+# Overlay for the BIDI gateway — the read-write command channel (/api/ws/v1/bidi: create/put/get over
+# WebSocket frames). Image repository/tag/pullPolicy come from versions.env via the Makefile
+# (ghcr_image); the per-CACHE_TYPE endpoints are set on the install in the Makefile. The near cache is
+# intentionally OFF here: this gateway is the mutation/command path, and keeping the server-side near
+# cache (and snapshot hydration) on the separate STREAM gateway is the whole point of the split.
+#
+# ClusterIP so the Service is reachable by the split-router Ingress and by the verify's direct
+# port-forward (the chart defaults to LoadBalancer).
+service:
+  type: ClusterIP

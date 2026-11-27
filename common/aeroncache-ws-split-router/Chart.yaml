@@ -1,0 +1,13 @@
+apiVersion: v2
+name: aeroncache-ws-split-router
+description: >-
+  Front door for the routing-ws-split pattern. Renders a single Kubernetes Ingress that splits the
+  WebSocket interface by endpoint role across two gateways that share one backend — bidi connections
+  (/api/ws/v1/bidi, the read-write command channel) to one gateway, unidirectional streaming
+  (/api/ws/v1/cache/..., plain subscribe and snapshot hydration) to another. Unlike aeroncache-router
+  it does not route by cache id and needs no regex; the two endpoints have disjoint static path
+  prefixes, so ingress-nginx routes them by prefix and upgrades WebSocket natively (no server-snippet,
+  no allow-snippets). First-party chart, like common/observability; not vendored.
+type: application
+version: 0.0.1
+appVersion: "0.0.1"
