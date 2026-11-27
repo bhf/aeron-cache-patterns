@@ -1,0 +1,12 @@
+# Overlay for the pooled ws gateways. Image repository/tag/pullPolicy come from versions.env via the
+# Makefile (ghcr_image); replicaCount, nearCacheEnabled and the per-CACHE_TYPE endpoints are set on
+# the install in the Makefile. Every pod here is identical and warm — a replica of the same reader
+# over the one shared backend — so the pool Service (and the lb-router Ingress in front of it) can
+# round-robin subscriptions across them.
+#
+# ClusterIP so the pool Service is reachable by the lb-router Ingress and by the verify's per-pod
+# port-forwards (the chart defaults to LoadBalancer). The near cache serves each pod's snapshot
+# hydration from its own warm local copy; the near-cache metrics are on each pod's own /prometheus
+# (port 7071), which is how the verify proves the load spread across the pool.
+service:
+  type: ClusterIP

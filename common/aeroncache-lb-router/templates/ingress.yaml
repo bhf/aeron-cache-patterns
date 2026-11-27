@@ -1,0 +1,44 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "aeroncache-lb-router.fullname" . }}
+  labels:
+    {{- include "aeroncache-lb-router.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # Long upstream timeouts so a quiet, long-lived hydrating subscription is not dropped at nginx's
+    # 60s default. ingress-nginx upgrades WebSocket connections natively and round-robins new
+    # connections across the pool Service's endpoints (the N pods) — so NO server-snippet is used
+    # here and the controller does NOT need allow-snippet-annotations (unlike the hash-router).
+    nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.readTimeout | quote }}
+    nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.sendTimeout | quote }}
+    {{- with .Values.extraAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingressClassName }}
+  rules:
+    {{- /* One rule, one path: everything for the pool goes to the pool Service, which fronts the N
+          identical warm gateways. The controller load-balances across its pod endpoints. */}}
+    {{- if .Values.host }}
+    - host: {{ .Values.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.service }}
+                port:
+                  number: {{ .Values.port }}
+    {{- else }}
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.service }}
+                port:
+                  number: {{ .Values.port }}
+    {{- end }}

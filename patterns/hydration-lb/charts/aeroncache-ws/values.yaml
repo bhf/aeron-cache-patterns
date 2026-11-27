@@ -1,0 +1,213 @@
+# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 1
+
+# This sets the cluster addresses.
+clusterAddresses: "aeroncache-cluster-0.aeroncache-cluster.{{ .Release.Namespace }}.svc.cluster.local,aeroncache-cluster-1.aeroncache-cluster.{{ .Release.Namespace }}.svc.cluster.local,aeroncache-cluster-2.aeroncache-cluster.{{ .Release.Namespace }}.svc.cluster.local"
+cacheMode: "RAFT"
+
+# When true, the streaming interface serves hydration (snapshot-on-subscribe) from a local near
+# cache kept warm by a single cluster subscription, instead of asking the cluster for a per-subscriber
+# snapshot. Also exposes the near cache management endpoints. Sets NEAR_CACHE_ENABLED on the container.
+nearCacheEnabled: false
+
+# ConfigMap name. Blank means "<fullname>-config" (derived from the release); set a value to pin a
+# specific name. Read by the ConfigMap and the Deployment via the configmapName helper.
+aeroncacheWSConfigmap: ""
+
+# Ephemeral (SINGLE mode) cache response-channel endpoints. Left blank in clustered (RAFT) mode; set
+# by the install-ephemeral target to the ephemeral cache service's request/response-control endpoints.
+ephemeralRequestEndpoint: ""
+ephemeralResponseControlEndpoint: ""
+
+# Comma separated list of allowed CORS origins for the web facing interface. Leave blank to fall
+# back to the application default (localhost dev origins).
+corsAllowedOrigins: "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005,http://localhost"
+
+# Idle strategy for the Aeron and agent threads. One of: backoff, spin, noop, yield,
+# sleep-ns[:nanos], sleep-ms[:millis], or a fully qualified IdleStrategy class name. Applies to all
+# roles; individual roles can be overridden with IDLE_STRATEGY_<ROLE> environment variables. Leave
+# blank to use the application default (backoff).
+idleStrategy: "backoff"
+
+# Aeron term buffer length for the cache data channels. The maximum Aeron message size is
+# termLength / 8, so 128m is required to support values up to ~16MB (see LargeItemTests). Leave
+# blank to fall back to the application default (64k). Buffers are sparse, so the resident memory
+# cost of a larger term length is small.
+aeronCacheTermLength: "128m"
+
+# External Aeron C media driver (aeronmd) sidecar. When enabled, the C driver runs as a native
+# sidecar and this app attaches to it as a pure Aeron client (LAUNCH_EMBEDDED=false) instead of
+# launching an embedded Java MediaDriver. Both containers share the `shm` volume at aeronDir, and
+# the driver's term buffers are sized from aeronCacheTermLength above (single source of truth).
+# The app image runs as root, so it can map the driver's CnC/term files even though the driver
+# runs as uid 1000; pin both containers to a matching non-root uid via podSecurityContext for a
+# hardened deployment.
+externalMediaDriver:
+  enabled: false
+  # Aeron dir shared between the driver and app containers via the `shm` emptyDir.
+  aeronDir: /dev/shm/aeron
+  # Driver threading mode: SHARED, SHARED_NETWORK, or DEDICATED.
+  threadingMode: SHARED
+  image:
+    repository: aeroncache-media-driver
+    pullPolicy: Never
+    tag: "latest"
+  # Extra AERON_* env for the driver (e.g. AERON_DRIVER_TIMEOUT, *_IDLE_STRATEGY).
+  extraEnv: []
+  resources: {}
+
+# OpenTelemetry Java agent metrics (optional). The agent jar is baked into the image by Jib at
+# agentPath but is inert unless enabled here: when enabled, it is activated via JAVA_TOOL_OPTIONS and
+# exposes a Prometheus scrape endpoint on metricsPort/metricsPath (JVM + auto-instrumented HTTP
+# server metrics), and the pod is annotated with prometheus.io/scrape so the aeroncache-observability
+# Prometheus auto-discovers it. When disabled (the default) no -javaagent flag is set, so the app is
+# never instrumented. Toggle from the Makefiles with JAVAAGENT=true (see ../Makefile).
+javaagent:
+  enabled: false
+  # Path to the agent jar in the image (see cache-ws/ws-server-javalin/build.gradle.kts).
+  agentPath: /app/agent/opentelemetry-javaagent.jar
+  # Port and path the agent's Prometheus exporter serves metrics on.
+  metricsPort: 9464
+  metricsPath: /metrics
+  # OTEL_SERVICE_NAME; defaults to the chart fullname when left blank.
+  serviceName: ""
+  # Non-metric signal exporters; left off so enabling metrics does not also emit traces/logs.
+  tracesExporter: none
+  logsExporter: none
+  # Extra OTEL_*/agent env, e.g. [{name: OTEL_METRIC_EXPORT_INTERVAL, value: "5000"}].
+  extraEnv: []
+
+# The application's own Micrometer metrics, served on the HTTP service port at appMetrics.path
+# (subscription gauges, per-operation counters and JVM metrics). Unlike the OTel javaagent above this
+# is enabled by default: the pod is annotated with aeroncache.io/app-metrics-scrape so the
+# aeroncache-observability Prometheus scrapes this endpoint via its aeroncache-app-metrics job. It is
+# independent of the javaagent, so both can be scraped at once.
+appMetrics:
+  enabled: true
+  path: /prometheus
+
+# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+image:
+  repository: aeroncache-ws
+  # This sets the pull policy for images.
+  pullPolicy: Never
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# This is to override the chart name.
+nameOverride: ""
+# Left blank so the resource names derive from the Helm release name, letting several
+# ws gateways coexist in one namespace. Installing with release name "aeroncache-ws"
+# reproduces the previous fixed names; set this to pin a name.
+fullnameOverride: ""
+
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template (release-aware).
+  name: ""
+
+# This is for setting Kubernetes Annotations to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+podAnnotations: {}
+# This is for setting Kubernetes Labels to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
+
+podSecurityContext: {}
+# fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+# runAsNonRoot: true
+# runAsUser: 1000
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  type: LoadBalancer
+  # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
+  port: 7071
+  # Set to "None" to make this a headless service (ephemeral/SINGLE mode) so the service
+  # DNS name resolves to the interface pod IP. Aeron uses UDP directly between pods, which a
+  # virtual ClusterIP (LoadBalancer/ClusterIP) does not forward. Leave empty for cluster/RAFT mode.
+  clusterIP: ""
+  # When headless, publish the pod address in DNS before it is Ready so the ephemeral cluster
+  # can resolve the response target during startup. Ignored for LoadBalancer/ClusterIP services.
+  publishNotReadyAddresses: false
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+#   cpu: 100m
+#   memory: 128Mi
+
+# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+livenessProbe:
+  httpGet:
+    path: /liveness/
+    port: 7071
+readinessProbe:
+  httpGet:
+    path: /readiness/
+    port: 7071
+
+# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Additional volumes on the output Deployment definition.
+volumes:
+  - emptyDir:
+      medium: Memory
+      sizeLimit: 1Gi
+    name: shm
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+  - mountPath: /dev/shm
+    name: shm
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

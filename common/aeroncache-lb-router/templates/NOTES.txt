@@ -1,0 +1,17 @@
+aeroncache-lb-router installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+IngressClass : {{ .Values.ingressClassName }}
+Pool Service : {{ .Values.service }}:{{ .Values.port }}  (N identical warm gateways behind it)
+Balancing    : ingress-nginx round-robin across the Service's pod endpoints (no snippet required)
+
+Every request is spread across the whole pool — the dual of aeroncache-hash-router, which pins a
+cache id to one owning shard. Because every pod is warm with the same caches, any pod can serve any
+hydrating subscription, so no session stickiness is needed.
+
+Reach the front door by port-forwarding the ingress-nginx controller:
+
+  kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+  # hydrate (ws): ws://localhost:8080/api/ws/v1/cache/hydrate/<id>  -> round-robined to a warm pool pod
+
+Successive hydrating subscriptions land on different pods; each serves its snapshot from its own near
+cache.

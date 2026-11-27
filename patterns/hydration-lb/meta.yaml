@@ -1,0 +1,14 @@
+# Structured metadata for a pattern. The docs-site reads this to build the patterns index
+# and the per-pattern page; the README.md next to it holds the prose (kept frontmatter-free
+# so it renders cleanly on GitHub too).
+title: "Load-balanced hydration (WebSocket)"
+slug: "hydration-lb"
+order: 50
+section: "Kubernetes Patterns"
+category: "Near cache"
+summary: "Prime a pool of near-cache WebSocket gateways and round-robin hydrating subscriptions across them, so snapshot hydration is served warm and spread over the pool — the replication dual of hash routing."
+status: "ready"
+difficulty: "intermediate"
+prereqs: [ingress-nginx]
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-ws]
+projectItem: ""

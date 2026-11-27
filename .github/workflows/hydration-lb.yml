@@ -1,0 +1,39 @@
+name: Hydration LB
+
+# Runs the hydration-lb pattern against both backend types (clustered + ephemeral) via the reusable
+# workflow. A pool of near-cache ws gateways (one aeroncache-ws StatefulSet at replicaCount=GATEWAYS)
+# sits over one shared backend; prereqs.sh installs the ingress-nginx controller (NO snippets here —
+# the load balancing is ingress-nginx's own round-robin across the pool), then `make verify` primes
+# every gateway and proves hydrating subscriptions are served from the near caches and spread across
+# the pool. The near cache is intrinsic to the pattern (always on), so there is no near-cache matrix
+# dimension. Fires on changes to this pattern, the shared lb-router chart / ingress installer, the
+# shared pieces, or the reusable workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/hydration-lb/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/hydration-lb.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/hydration-lb/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/hydration-lb.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  hydration-lb:
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-type: [clustered, ephemeral]
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: hydration-lb
+      cache-type: ${{ matrix.cache-type }}
+      # One shared backend + 3 warm ws gateways + the ingress controller; give the namespace room.
+      wait-timeout: "900s"
