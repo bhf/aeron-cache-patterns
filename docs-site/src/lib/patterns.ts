@@ -8,7 +8,7 @@ export const SECTION_INTROS: Record<string, string> = {
   'Kubernetes Patterns':
     'Self-contained ways to run Aeron Cache on Kubernetes. Each pattern carries its own vendored Helm charts, a one-command run (<code class="rounded bg-sage-600/15 px-1.5 py-0.5 font-mono text-sm text-sage-200">make up</code>), a smoke test, and its own CI. They pull the public images from <code class="rounded bg-sage-600/15 px-1.5 py-0.5 font-mono text-sm text-sage-200">ghcr.io/bhf/aeroncache-*</code>, so there is nothing to build.',
   'Routing patterns':
-    'A single front door over many caches: a Kubernetes Ingress that routes each request to the gateway (and backend) that owns the cache named in its path. One pattern per interface — HTTP, SSE and WebSocket — each proving that routing by cache id works, including for the unidirectional streams, with an isolation check that rules out round-robin.',
+    'A single front door over many caches: a Kubernetes Ingress that routes each request to the gateway (and backend) that owns the cache named in its path. One pattern per interface — HTTP, SSE and WebSocket — each proving that routing by cache id works, including for the unidirectional streams, with an isolation check that rules out round-robin. A hash variant shards by <code class="rounded bg-sage-600/15 px-1.5 py-0.5 font-mono text-sm text-sage-200">crc32(cacheId) % N</code> so any id routes with no per-id map.',
 };
 
 // Category display order on the index and in the sidebar. Categories not listed here are

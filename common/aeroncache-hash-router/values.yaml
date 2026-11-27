@@ -1,0 +1,54 @@
+# aeroncache-hash-router — a single Ingress that routes by a HASH of the cache id to one of N
+# per-shard gateways. Where common/aeroncache-router renders one static path rule per cache id (an
+# explicit id -> instance map), this chart computes the shard at request time inside ingress-nginx:
+#
+#     shard = crc32(cacheId) % shardCount   ->   proxy to "<readRelease>-<shard>"
+#
+# so EVERY cache id routes deterministically to exactly one shard with no per-id configuration, and
+# all operations for the same id (create/put/get) land on the same gateway + backend. It is a
+# first-party chart (like common/observability); nothing here builds or vendors an image — the Ingress
+# is served by an ingress-nginx controller that common/ingress.sh installs.
+#
+# The hashing lives in an nginx `server-snippet`, so the controller must allow snippet annotations:
+#   common/ingress.sh allow-snippets   (sets allow-snippet-annotations + annotations-risk-level)
+
+# Which interface this front door routes for. Only "http" is supported today (the hash is computed
+# from the /api/v1/cache/<id> path, which http serves for both reads and writes). sse/ws would add
+# their own routed path shapes, as in common/aeroncache-router.
+interface: http
+
+# Namespace the gateway Services live in. The Ingress and its backends share this release's namespace;
+# it is interpolated into the in-cluster Service DNS the snippet proxies to.
+namespace: aeroncache-patterns
+
+# IngressClass of the installed controller. common/ingress.sh installs ingress-nginx, whose class is
+# "nginx".
+ingressClassName: nginx
+
+# Optional Host for the Ingress rule. Empty = a host-less rule that matches any Host header, which is
+# what the port-forward-based verify uses. Set a host for a name-based deployment.
+host: ""
+
+# Release-name stem + Service port of the per-shard gateways. Shard s is served by Service
+# "<readRelease>-<s>" on <readPort>. The pattern deploys aeroncache-http-0 .. aeroncache-http-<N-1>.
+readRelease: aeroncache-http
+readPort: 7070
+
+# Number of shards. MUST equal the number of gateways the pattern deployed (aeroncache-http-0 ..
+# aeroncache-http-<shardCount-1>); the snippet computes crc32(cacheId) % shardCount, so a mismatch
+# would route to a Service that does not exist. Changing this remaps most cache ids (plain mod-N, not
+# a consistent hash) — fine for a fixed-topology demo.
+shardCount: 3
+
+# DNS resolver the snippet uses to resolve the chosen gateway at request time. A variable proxy_pass
+# (the shard is only known per-request) is resolved dynamically, so nginx needs a resolver. This is
+# the cluster DNS (CoreDNS) Service ClusterIP — the pattern discovers it at deploy time
+# (kubectl -n kube-system get svc kube-dns -o jsonpath='{.spec.clusterIP}') and overrides this. The
+# default is the common default Service CIDR address for kube-dns.
+resolver: "10.96.0.10"
+
+# Extra annotations merged onto the Ingress (after the generated ones).
+extraAnnotations: {}
+
+# Extra labels merged onto the Ingress.
+extraLabels: {}

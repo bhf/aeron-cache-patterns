@@ -1,0 +1,19 @@
+aeroncache-hash-router installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Interface: {{ .Values.interface }}   IngressClass: {{ .Values.ingressClassName }}
+Sharding : shard = crc32(cacheId) % {{ .Values.shardCount }}  ->  {{ .Values.readRelease }}-<shard>:{{ .Values.readPort }}
+Resolver : {{ .Values.resolver }}
+
+Every cache id routes deterministically to one of {{ .Values.shardCount }} shards — no per-id config.
+The hashing runs in an nginx server-snippet, so the controller must allow snippet annotations:
+
+  bash common/ingress.sh allow-snippets
+
+Reach the front door by port-forwarding the ingress-nginx controller, then address caches by id:
+
+  kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80
+  curl -X PUT  localhost:8080/api/v1/cache/orders
+  curl -X POST localhost:8080/api/v1/cache/orders -H 'Content-Type: application/json' -d '{"key":"k","value":"v"}'
+  curl        localhost:8080/api/v1/cache/orders/k            # served by shard crc32("orders") % {{ .Values.shardCount }}
+
+The response carries the chosen shard back in the X-Aeroncache-Shard header (visible with `curl -i`).

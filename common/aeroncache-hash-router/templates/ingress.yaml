@@ -1,0 +1,48 @@
+{{- if ne .Values.interface "http" }}
+{{- fail (printf "aeroncache-hash-router: interface must be http (got %q); sse/ws hash routing is not implemented yet" .Values.interface) }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "aeroncache-hash-router.fullname" . }}
+  labels:
+    {{- include "aeroncache-hash-router.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # The cache id is hashed to a shard inside this snippet, which adds one regex location that
+    # proxies to the owning gateway. Requires the controller to allow snippet annotations
+    # (common/ingress.sh allow-snippets); without it the controller drops this and all traffic falls
+    # through to the default backend below.
+    nginx.ingress.kubernetes.io/server-snippet: |
+      {{- include "aeroncache-hash-router.serverSnippet" . | nindent 6 }}
+    {{- with .Values.extraAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingressClassName }}
+  rules:
+    {{- $defaultSvc := printf "%s-0" .Values.readRelease }}
+    {{- if .Values.host }}
+    - host: {{ .Values.host | quote }}
+      http:
+        paths:
+          # Default backend. The hash-routing regex location (from the server-snippet) wins for
+          # /api/v1/cache/<id>; everything else lands here on shard 0.
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $defaultSvc }}
+                port:
+                  number: {{ .Values.readPort }}
+    {{- else }}
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $defaultSvc }}
+                port:
+                  number: {{ .Values.readPort }}
+    {{- end }}

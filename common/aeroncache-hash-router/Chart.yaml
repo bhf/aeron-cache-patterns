@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aeroncache-hash-router
+description: Front door for the hash-routing pattern. Renders a single Kubernetes Ingress whose ingress-nginx server-snippet hashes the cache id out of the request path (crc32 mod shardCount) and proxies every operation for that id to the gateway that owns the shard. Unlike aeroncache-router (a static cache-id -> instance map), any cache id routes deterministically with no per-id configuration. Requires snippet annotations enabled on the controller (common/ingress.sh allow-snippets). First-party chart, like common/observability; not vendored.
+type: application
+version: 0.0.1
+appVersion: "0.0.1"

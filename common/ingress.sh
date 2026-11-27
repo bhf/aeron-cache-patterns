@@ -40,7 +40,28 @@ install() {
   echo "ingress-nginx is ready (reach it via: kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80)."
 }
 
+# Enable nginx snippet annotations on the controller. ingress-nginx disables snippet annotations by
+# default since v1.9 (allow-snippet-annotations: false) and classifies them as "Critical" risk, so the
+# server-snippet the hash-routing front door (common/aeroncache-hash-router) uses is ignored until
+# both are turned on. The other routing patterns do not need this; only routing-hash-http calls it.
+# Idempotent: a no-op if the ConfigMap already has these values.
+allow_snippets() {
+  kubectl -n ingress-nginx get deploy ingress-nginx-controller >/dev/null 2>&1 || {
+    echo "ingress-nginx is not installed; run 'ingress.sh install' first." >&2; exit 1; }
+
+  echo "Enabling snippet annotations on the ingress-nginx controller..."
+  kubectl -n ingress-nginx patch configmap ingress-nginx-controller --type merge \
+    -p '{"data":{"allow-snippet-annotations":"true","annotations-risk-level":"Critical"}}'
+
+  # allow-snippet-annotations is read at startup, so restart the controller and wait for it to be
+  # ready before any Ingress carrying a snippet is applied.
+  kubectl -n ingress-nginx rollout restart deployment/ingress-nginx-controller
+  kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=240s
+  echo "Snippet annotations enabled."
+}
+
 case "${1:-}" in
   install) install ;;
-  *) echo "usage: ingress.sh install" >&2; exit 2 ;;
+  allow-snippets) allow_snippets ;;
+  *) echo "usage: ingress.sh {install|allow-snippets}" >&2; exit 2 ;;
 esac
