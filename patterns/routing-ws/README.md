@@ -109,9 +109,9 @@ make cluster-down    # (optional) delete the whole cluster
 
 - **Fan-out, reused.** The deploy loop installs, per instance, an `aeroncache-cluster-i` (or
   `-ephemeral-i`) backend, an `aeroncache-ws-i` reader, and an `aeroncache-http-i` writer — reader and
-  writer wired to the same backend. The vendored `aeroncache-ws` chart is patched to be release-aware
-  (like the upstream http/cluster charts) so it fans out without colliding — see
-  [`charts/PATCHES.md`](charts/PATCHES.md).
+  writer wired to the same backend. The upstream `aeroncache-ws` chart is release-aware (like the
+  http/cluster charts), so each release's resource names derive from its release name and the gateway
+  fans out across `aeroncache-ws-0`, `aeroncache-ws-1`, … without colliding.
 - **One Ingress, two rule kinds.** The shared [`common/aeroncache-router`](../../common/aeroncache-router)
   chart emits both the ws subscribe rule and the http write rule per cache id, with the WebSocket read
   timeout.
