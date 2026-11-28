@@ -19,11 +19,15 @@ every request. Two kinds of request now pull in opposite directions:
 
 This pattern wires both behind **one Ingress**, so the UI points a single `AERON_CACHE_API` at it:
 
-```
-                              ┌─ keyed  /api/v1/cache|counters/<id> …
-browser ─ UI :3000 ─(server)─▶ Ingress ─┤        → crc32(cacheId) % N → aeroncache-http-<shard> → backend<shard>
-                              └─ aggregate /caches /stats /snapshot[-info] /multi/* …
-                                       → aeroncache-http-fanout :7071 → scatter-gather EVERY shard
+```mermaid
+flowchart LR
+  ui["UI · :3000<br/>(single AERON_CACHE_API)"]
+  ingress["Ingress<br/>(ingress-nginx)"]
+  shard["aeroncache-http-&lt;shard&gt;<br/>→ backend &lt;shard&gt;"]
+  fanout["aeroncache-http-fanout · :7071<br/>scatter-gather EVERY shard"]
+  ui -->|"server-side<br/>/api/v1/…"| ingress
+  ingress -->|"keyed · /cache, /counters/&lt;id&gt;<br/>crc32(cacheId) % N"| shard
+  ingress -->|"aggregate · /caches /stats /snapshot[-info] /multi/*"| fanout
 ```
 
 The pay-off is the demo: the UI **lists caches that live on different shards** (the fan-out union)
