@@ -1,0 +1,38 @@
+name: Multi-cache UI
+
+# Runs the multi-cache-ui pattern on kind via the reusable workflow. N hash-sharded cache instances
+# sit behind one Ingress, the aeroncache-http-fanout aggregator fronts them for cross-cache operations,
+# and the Next.js UI points a single API base at the Ingress. prereqs.sh installs the ingress-nginx
+# controller AND enables snippet annotations; `make verify` then proves keyed hash sharding, fan-out
+# aggregation (the /caches union + per-backend /multi/snapshot-info) and UI readiness.
+#
+# CI runs the EPHEMERAL backend only (single-node per shard). The clustered variant (3-node RAFT per
+# shard) plus the fan-out and UI is ~14 pods — too heavy for a single GitHub runner; it is available
+# locally via `make up CACHE_TYPE=clustered`. Fires on changes to this pattern, the shared hash-router
+# chart / ingress installer, the shared pieces, or the reusable workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'patterns/multi-cache-ui/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/multi-cache-ui.yml'
+      - '.github/workflows/_pattern-ci.yml'
+  pull_request:
+    paths:
+      - 'patterns/multi-cache-ui/**'
+      - 'common/**'
+      - 'versions.env'
+      - '.github/workflows/multi-cache-ui.yml'
+      - '.github/workflows/_pattern-ci.yml'
+
+jobs:
+  multi-cache-ui:
+    uses: ./.github/workflows/_pattern-ci.yml
+    with:
+      pattern: multi-cache-ui
+      cache-type: ephemeral
+      # Three ephemeral shards + gateways + fan-out + UI + the ingress controller; give the namespace
+      # room to go Ready (the UI is server-side rendered and fans out on first load).
+      wait-timeout: "900s"

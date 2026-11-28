@@ -1,0 +1,10 @@
+title: "Multi-cache + UI (hash sharding + fan-out)"
+slug: "multi-cache-ui"
+order: 21
+category: "Full stack"
+summary: "N hash-sharded cache instances behind one Ingress, the http fan-out aggregator for cross-cache operations, and the Next.js UI on top — keyed ops shard on the cache id, multi-cache views aggregate across every shard."
+status: "ready"
+difficulty: "advanced"
+prereqs: [ingress-nginx]
+upstreamCharts: [aeroncache-cluster, aeroncache-ephemeral, aeroncache-http, aeroncache-http-fanout, aeroncache-ui-nextjs]
+projectItem: ""
