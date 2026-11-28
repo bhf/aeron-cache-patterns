@@ -1,0 +1,213 @@
+# This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+replicaCount: 1
+
+# ConfigMap name. Blank means "<fullname>-config" (derived from the release); set a value to pin a
+# specific name. Read by the ConfigMap and the Deployment via the configmapName helper.
+aeroncacheClusterConfigmap: ""
+
+# This sets the cache mode for the cluster
+cacheMode: "SINGLE"
+
+# Idle strategy for the Aeron and agent threads. One of: backoff, spin, noop, yield,
+# sleep-ns[:nanos], sleep-ms[:millis], or a fully qualified IdleStrategy class name. Applies to all
+# roles; individual roles can be overridden with IDLE_STRATEGY_<ROLE> environment variables. Leave
+# blank to use the application default (backoff).
+idleStrategy: "backoff"
+
+# Aeron term buffer length for the single-node cache media driver. The maximum Aeron message size is
+# termLength / 8, so 128m is required to support values up to ~16MB (see LargeItemTests). Must match
+# the interfaces' term length; without it the node's driver falls back to a 16m term (~2MB max), which
+# hangs on larger items (e.g. the 4MB LargeItemTests case). Buffers are sparse, so the resident memory
+# cost is small.
+aeronCacheTermLength: "128m"
+
+# External Aeron C media driver (aeronmd) sidecar. When enabled, the C driver runs as a native
+# sidecar and this app attaches to it as a pure Aeron client (LAUNCH_EMBEDDED=false) instead of
+# launching an embedded Java MediaDriver. Both containers share the `shm` volume at aeronDir, and
+# the driver's term buffers are sized from aeronCacheTermLength above (single source of truth).
+# The app image runs as root, so it can map the driver's CnC/term files even though the driver
+# runs as uid 1000; pin both containers to a matching non-root uid via podSecurityContext for a
+# hardened deployment.
+externalMediaDriver:
+  enabled: false
+  # Aeron dir shared between the driver and app containers via the `shm` emptyDir.
+  aeronDir: /dev/shm/aeron
+  # Driver threading mode: SHARED, SHARED_NETWORK, or DEDICATED.
+  threadingMode: SHARED
+  image:
+    repository: aeroncache-media-driver
+    pullPolicy: Never
+    tag: "latest"
+  # Extra AERON_* env for the driver (e.g. AERON_DRIVER_TIMEOUT, *_IDLE_STRATEGY).
+  extraEnv: []
+  resources: {}
+
+# ClusterTools HTTP sidecar co-located with the cache. Its `counters` endpoint (port 7080) scrapes
+# the cache media driver's counters from the shared /dev/shm directory (AERON_DIR).
+clustertools:
+  image:
+    repository: aeroncache-http-clustertools
+    tag: "latest"
+    pullPolicy: Never
+  port: 7080
+  resources: {}
+  livenessProbe:
+    httpGet:
+      path: /liveness/
+      port: 7080
+  readinessProbe:
+    httpGet:
+      path: /readiness/
+      port: 7080
+
+# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+image:
+  repository: aeroncache-cluster
+  # This sets the pull policy for images.
+  pullPolicy: Never
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+release-name: "aeroncache-ephemeral"
+
+# This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# This is to override the chart name.
+nameOverride: ""
+# Left blank so the resource names derive from the Helm release name, letting several
+# ephemeral releases coexist in one namespace. Installing with release name
+# "aeroncache-ephemeral" reproduces the previous fixed names; set this to pin a name.
+fullnameOverride: ""
+
+# This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# This is for setting Kubernetes Annotations to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+#
+# The prometheus.io/* annotations make the aeroncache-observability Prometheus auto-discover and
+# scrape the co-located clustertools sidecar, which exports the shared Aeron media driver counters
+# (media driver system counters + the cache request counters, type 2000, and the cache subscription
+# counters, type 2200) in Prometheus format on
+# /prometheus. One scrape per pod captures everything the driver publishes. The annotations are inert
+# if the observability stack is not deployed. The port must match clustertools.port above.
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "7080"
+  prometheus.io/path: "/prometheus"
+# This is for setting Kubernetes Labels to a Pod.
+# For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
+
+podSecurityContext: {}
+# fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+# runAsUser: 1000
+
+# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
+# Headless (clusterIP: None) so the cache is addressed by its stable per-pod DNS name. Aeron UDP does
+# NOT traverse a virtual ClusterIP (kube-proxy DNAT breaks it), so clients must reach the pod directly.
+# Response channels (control-mode=response) remove the OLD requirement for the cache to dial each
+# interface back by name; the cache now routes responses to each request's real source address, so the
+# interfaces themselves no longer need to be headless.
+service:
+  # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+  type: ClusterIP
+  clusterIP: None
+  # Publish the pod's DNS name before it is Ready so clients (and the cache itself) can resolve the
+  # response control endpoint during startup.
+  publishNotReadyAddresses: true
+  # Aeron request endpoint (UDP) clients dial.
+  requestPort: 8075
+  # Aeron response control endpoint (UDP) for control-mode=response.
+  responseControlPort: 8076
+
+# Aeron response-channel endpoints advertised via the configmap. The request endpoint binds all
+# interfaces on the pod; the response control endpoint is the cache's own per-pod DNS name (headless),
+# which resolves to the pod IP for both the cache (to bind) and the clients (to subscribe).
+ephemeralRequestEndpoint: "0.0.0.0:8075"
+ephemeralResponseControlEndpoint: "aeroncache-ephemeral-0.aeroncache-ephemeral.{{ .Release.Namespace }}.svc.cluster.local:8076"
+
+# Aeron image liveness timeout (seconds) for the response-channel transport. Low so a cache restart is
+# detected quickly and the channel rebuilt before a request is sent into the stale channel.
+aeronImageLivenessTimeoutSeconds: 2
+
+# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+  # This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  # livenessProbe:
+  # httpGet:
+  #     path: /
+  #     port: http
+  # readinessProbe:
+  # httpGet:
+  #     path: /
+#     port: http
+
+# This section is for setting up autoscaling more information can be found here: https://kubernetes.io/docs/concepts/workloads/autoscaling/
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Additional volumes on the output Deployment definition.
+volumes:
+  - emptyDir:
+      medium: Memory
+      sizeLimit: 1Gi
+    name: shm
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts:
+  - mountPath: /dev/shm
+    name: shm
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -44,6 +44,20 @@ readPort: 7070
 writeRelease: aeroncache-http
 writePort: 7070
 
+# Fan-out aggregator (multi-cache UI). OFF by default, so the routing-hash-* patterns render exactly
+# as before. When enabled (interface must be http), the snippet splits the UI's single API base in
+# two: the cross-cache AGGREGATE endpoints (/api/v1/caches, /stats, /snapshot[-info|-and-purge],
+# /counters-*, /timers, /aeron-counters, /shutdown and /multi/*) are proxied to the stateless
+# aeroncache-http-fanout aggregator, which scatter-gathers them across every gateway; the KEYED
+# per-cache operations (/api/v1/cache/<id>... and /api/v1/counters/<id>...) still hash on the cache id
+# to the owning shard. This lets the multi-cache UI point one AERON_CACHE_API at this Ingress and get
+# both behaviours. See the multi-cache-ui pattern.
+fanout:
+  enabled: false
+  # Release name (Service) of the fan-out aggregator in this namespace, and its HTTP port.
+  release: aeroncache-http-fanout
+  port: 7071
+
 # Number of shards. MUST equal the number of gateways the pattern deployed (aeroncache-http-0 ..
 # aeroncache-http-<shardCount-1>); the snippet computes crc32(cacheId) % shardCount, so a mismatch
 # would route to a Service that does not exist. Changing this remaps most cache ids (plain mod-N, not

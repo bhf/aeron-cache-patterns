@@ -1,0 +1,22 @@
+# Vendored charts — managed by scripts/sync-charts.sh. Do not hand-edit chart contents;
+# re-run the script to refresh, then review the diff.
+upstream_repo: https://github.com/bhf/aeron-cache.git
+upstream_ref:  f6034f5e83f04bbbaa1b15d06697f1c246f95a5a
+upstream_sha:  f6034f5e83f04bbbaa1b15d06697f1c246f95a5a
+synced_at:     2026-11-28T18:50:52Z
+charts:
+  - name: aeroncache-cluster
+    version: 0.0.1
+  - name: aeroncache-ephemeral
+    version: 0.0.1
+  - name: aeroncache-http
+    version: 0.0.1
+  - name: aeroncache-http-fanout
+    version: 0.0.1
+  - name: aeroncache-ui-nextjs
+    version: 0.1.0
+
+# LOCAL PATCHES (re-apply after re-vendoring until upstream ships them):
+#   aeroncache-ui-nextjs/templates/configmap.yaml — adds an optional AERON_CACHE_MULTI key
+#     (.Values.endpoints.multi) so the UI can target the fan-out /api/v1/multi/... endpoints. The
+#     upstream chart maps only api/ws/sse/jaeger/prometheus and does not template this flag yet.

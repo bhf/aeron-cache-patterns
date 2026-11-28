@@ -1,0 +1,41 @@
+# Overlay for the Next.js UI in the multi-cache deployment. Image (ghcr.io/bhf/aeroncache-ui) comes
+# from the Makefile via ghcr_image; the Makefile also sets `namespace` (the UI ConfigMap lands there)
+# and `endpoints.api` (the in-cluster hash-router Ingress) + `endpoints.multi=true`.
+#
+# Endpoints:
+#   * api   -> the hash-router Ingress (in-cluster ingress-nginx controller Service), fetched
+#              server-side from the UI pod. Keyed /api/v1/cache|counters/<id> ops hash to the owning
+#              shard; aggregate + /api/v1/multi/* ops are proxied to the fan-out aggregator. Set in
+#              the Makefile so the namespace interpolates.
+#   * multi -> "true": the UI's snapshot views use the /api/v1/multi/... endpoints and render one
+#              result per backend (LOCAL PATCH key, see charts/.../configmap.yaml). Set in the Makefile.
+#   * ws/sse-> left at localhost defaults. The UI's live-streaming views are out of scope for this
+#              pattern (multi-cache ws/sse needs per-shard stream routing — see routing-hash-ws/sse);
+#              the cache CRUD + the multi-cache snapshot/info views this pattern demonstrates are all
+#              over http.
+#
+# The UI Service is left at its default LoadBalancer type on purpose: the chart hardcodes
+# `externalTrafficPolicy: Local`, which Kubernetes rejects on a ClusterIP Service. On kind/minikube a
+# LoadBalancer gets no external IP, but `make verify` and browser access go via `kubectl port-forward`
+# anyway, which works regardless of Service type.
+#
+# Relaxed probes: the UI's `/` is server-side rendered and fans out to the Ingress (-> fan-out ->
+# every shard) to list caches, so it can be slow while the cluster, shards, fan-out and Ingress are
+# still warming up. The chart's default probes (5s timeout, 5 failures) are too tight and liveness-kill
+# the UI into a crash loop before it settles. These give it room without masking a genuinely dead UI.
+livenessProbe:
+  httpGet:
+    path: /
+    port: 3000
+  initialDelaySeconds: 45
+  periodSeconds: 20
+  timeoutSeconds: 15
+  failureThreshold: 12
+readinessProbe:
+  httpGet:
+    path: /
+    port: 3000
+  initialDelaySeconds: 20
+  periodSeconds: 15
+  timeoutSeconds: 15
+  failureThreshold: 30

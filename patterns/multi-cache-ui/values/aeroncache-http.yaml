@@ -1,0 +1,10 @@
+# Overlay for every http gateway (shard) in this pattern. Image repository/tag/pullPolicy come from
+# versions.env via the Makefile (ghcr_image); cacheMode / clusterAddresses / ephemeral endpoints and
+# the per-instance release name are set per instance in the Makefile.
+#
+# ClusterIP so the gateways are reachable in-cluster only: the hash-router Ingress routes keyed cache
+# ops to them, the fan-out aggregator scatter-gathers aggregate ops across them, and the verify
+# port-forwards each one directly for its isolation checks. The chart defaults to LoadBalancer, which
+# would spin up one external IP per shard.
+service:
+  type: ClusterIP

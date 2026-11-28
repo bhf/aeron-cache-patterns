@@ -1,0 +1,10 @@
+# Overlay for the HTTP fan-out aggregator (multi-cache scatter-gather). Image repository/tag/pullPolicy
+# come from versions.env via the Makefile (ghcr_image); gatewayAddresses (the comma-separated list of
+# the pattern's per-shard http gateways) is built and set per deploy in the Makefile.
+#
+# ClusterIP: the aggregator is reached in-cluster only — the hash-router Ingress proxies the UI's
+# aggregate/multi endpoints to it, and the verify port-forwards it directly. The chart defaults to
+# LoadBalancer (one external IP), which this demo does not need.
+service:
+  type: ClusterIP
+  port: 7071

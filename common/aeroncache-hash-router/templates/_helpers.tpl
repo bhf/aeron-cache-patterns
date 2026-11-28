@@ -84,7 +84,33 @@ carries the id in the frame (not the path), so it is intentionally not routed he
 {{- $write := dict "release" .Values.writeRelease "port" .Values.writePort "root" $ -}}
 # --- aeroncache hash routing: shard = crc32(cacheId) % {{ .Values.shardCount }} ---
 resolver {{ .Values.resolver }} valid=10s ipv6=off;
-{{- if eq .Values.interface "http" }}
+{{- if .Values.fanout.enabled }}
+# fan-out mode (multi-cache UI). The UI drives one API base, so split it here:
+#  * cross-cache AGGREGATE + /multi/* endpoints -> the fan-out aggregator (scatter-gather all gateways)
+#  * keyed per-cache ops (/cache/<id>..., /counters/<id>...) -> hash on the cache id to the owning shard
+# The aggregate paths are plural/dashed (caches, counters-caches, counters-stats) or verbs (snapshot,
+# shutdown, multi/...), so they never collide with the singular keyed /cache/ and /counters/ prefixes.
+location ~ ^/api/v1/(caches|counters-caches|stats|counters-stats|timers|aeron-counters|snapshot|shutdown|multi/) {
+    proxy_set_header Connection "";
+    set $fanout_upstream {{ .Values.fanout.release }}.{{ .Values.namespace }}.svc.cluster.local:{{ .Values.fanout.port }};
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    # Surface which backend served it (fanout) for parity with the keyed shard header.
+    add_header X-Aeroncache-Shard "fanout" always;
+    proxy_pass http://$fanout_upstream$request_uri;
+}
+# keyed cache ops. The id is the segment after /cache/, except /cache/timed/<id> where it follows the
+# verb — capture both so every op for an id hashes to the SAME shard.
+location ~ ^/api/v1/cache/(?:timed/)?(?<cache_id>[^/]+) {
+    proxy_set_header Connection "";
+    {{- include "aeroncache-hash-router.shardProxy" $read | nindent 4 }}
+}
+# keyed counter ops. Likewise the id follows /counters/, except the increment/decrement/set verbs.
+location ~ ^/api/v1/counters/(?:increment/|decrement/|set/)?(?<cache_id>[^/]+) {
+    proxy_set_header Connection "";
+    {{- include "aeroncache-hash-router.shardProxy" $read | nindent 4 }}
+}
+{{- else if eq .Values.interface "http" }}
 # http serves both reads and writes on /api/v1/cache/<id>.
 location ~ ^/api/v1/cache/(?<cache_id>[^/]+) {
     proxy_set_header Connection "";
